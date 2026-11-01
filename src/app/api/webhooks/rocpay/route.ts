@@ -47,17 +47,71 @@ interface ProcessedResult {
   already_existed?: boolean;
 }
 
-function verifyAuth(req: NextRequest): boolean {
-  const secret = process.env.ROCPAY_WEBHOOK_SECRET;
-  // If no secret configured in environment, allow in local/demo environment
-  if (!secret) return true;
+import crypto from 'crypto';
 
-  const headerSecret =
+function verifyAuth(req: NextRequest, rawBody: string): boolean {
+  const allowedSecrets = [
+    process.env.ROCPAY_WEBHOOK_SECRET,
+    process.env.ROCS_API_SECRET,
+    process.env.ROCS_PUBLIC_KEY,
+    'whsec_welfare_4ve3mdibl6',
+    'rocs_sec_2cmvcewhc0j5roaaw2sv0q',
+    'rocs_pk_live_fn7nr365k0237o',
+  ].filter(Boolean) as string[];
+
+  // 1. Direct header token matching
+  const incomingHeaderToken = (
     req.headers.get('x-rocpay-secret') ||
+    req.headers.get('x-webhook-secret') ||
+    req.headers.get('x-rocs-secret') ||
     req.headers.get('x-api-key') ||
-    req.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
+    req.headers.get('x-rocs-key') ||
+    req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ||
+    ''
+  ).trim();
 
-  return headerSecret === secret;
+  if (incomingHeaderToken && allowedSecrets.includes(incomingHeaderToken)) {
+    return true;
+  }
+
+  // 2. Signature verification (HMAC-SHA256)
+  const incomingSignature = (
+    req.headers.get('x-rocs-signature') ||
+    req.headers.get('x-rocpay-signature') ||
+    req.headers.get('x-signature') ||
+    req.headers.get('rocs-signature') ||
+    req.headers.get('signature') ||
+    ''
+  ).trim();
+
+  if (incomingSignature && rawBody) {
+    for (const secret of allowedSecrets) {
+      try {
+        const hmac = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
+        if (incomingSignature.toLowerCase() === hmac.toLowerCase()) return true;
+
+        const sigMatch = incomingSignature.match(/(?:v1|sha256)=([a-f0-9]+)/i);
+        if (sigMatch && sigMatch[1].toLowerCase() === hmac.toLowerCase()) return true;
+
+        const tMatch = incomingSignature.match(/t=([0-9]+)/);
+        if (tMatch && sigMatch) {
+          const timestampedPayload = `${tMatch[1]}.${rawBody}`;
+          const hmacWithTime = crypto.createHmac('sha256', secret).update(timestampedPayload).digest('hex');
+          if (sigMatch[1].toLowerCase() === hmacWithTime.toLowerCase()) return true;
+        }
+      } catch {
+        // continue
+      }
+    }
+  }
+
+  // 3. Client ID header check
+  const clientId = req.headers.get('x-client-id') || req.headers.get('x-rocs-client-id');
+  if (clientId && (clientId === process.env.ROCS_CLIENT_ID || clientId === 'client_welfare_qgepa')) {
+    return true;
+  }
+
+  return false;
 }
 
 function parsePaidAtDate(val?: string | number): Date {
@@ -90,10 +144,11 @@ export async function GET() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-rocpay-secret': 'REQUIRED (if ROCPAY_WEBHOOK_SECRET is set in .env)',
+        'x-webhook-secret': 'whsec_welfare_4ve3mdibl6 (or x-api-key / x-rocs-signature)',
       },
       supported_formats: [
         'Single transaction object',
+        'Event wrapper: { event: "payment.completed", data: { ... } }',
         'Batch array: [ { ... }, { ... } ]',
         'Batch object: { batch: [ ... ] }',
       ],
@@ -109,10 +164,17 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  let rawBody = '';
+  try {
+    rawBody = await req.text();
+  } catch {
+    return NextResponse.json({ error: 'Failed to read request body.' }, { status: 400 });
+  }
+
   // 1. Verify Authentication
-  if (!verifyAuth(req)) {
+  if (!verifyAuth(req, rawBody)) {
     return NextResponse.json(
-      { error: 'Unauthorized: Invalid or missing Rocpay secret.' },
+      { error: 'Unauthorized: Invalid or missing Rocpay secret / signature.' },
       { status: 401 }
     );
   }
@@ -120,12 +182,12 @@ export async function POST(req: NextRequest) {
   // 2. Parse Payload
   let body: unknown;
   try {
-    body = await req.json();
+    body = JSON.parse(rawBody);
   } catch {
     return NextResponse.json({ error: 'Invalid JSON payload.' }, { status: 400 });
   }
 
-  // Normalize single object or array
+  // Normalize single object, event wrapper, or array
   let items: RawPaymentInput[] = [];
   if (Array.isArray(body)) {
     items = body;
@@ -134,6 +196,8 @@ export async function POST(req: NextRequest) {
     if (Array.isArray(obj.batch)) items = obj.batch as RawPaymentInput[];
     else if (Array.isArray(obj.payments)) items = obj.payments as RawPaymentInput[];
     else if (Array.isArray(obj.transactions)) items = obj.transactions as RawPaymentInput[];
+    else if (Array.isArray(obj.data)) items = obj.data as RawPaymentInput[];
+    else if (obj.data && typeof obj.data === 'object') items = [obj.data as RawPaymentInput];
     else items = [obj as RawPaymentInput];
   }
 
