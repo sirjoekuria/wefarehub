@@ -1,0 +1,10 @@
+project_id = "riders-welfare"
+
+[functions.mpesa-validation]
+verify_jwt = false
+
+[functions.mpesa-confirmation]
+verify_jwt = false
+
+[functions.register-c2b]
+verify_jwt = true

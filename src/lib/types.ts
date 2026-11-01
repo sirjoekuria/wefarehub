@@ -1,0 +1,26 @@
+export type PickupPoint = { id: string; code: string; name: string; is_active: boolean; created_at: string; member_count?: number; total_collected?: number };
+export type Member = { id: string; pickup_point_id: string; full_name: string; phone: string; qr_number: string; is_active: boolean; created_at: string; pickup_points?: { code: string; name: string } | null };
+export type Payment = { id: string; mpesa_receipt: string; amount: string; payer_phone: string; bill_ref_raw: string; pickup_code_parsed: string | null; qr_parsed: string | null; member_id: string | null; status: 'matched' | 'unmatched'; paid_at: string; created_at: string; member_name?: string | null; pickup_name?: string | null; pickup_code?: string | null };
+export type Page<T> = { items: T[]; total: number; page: number; pageSize: number };
+export type Dashboard = { totalCollected: number; totalCount: number; todayAmount: number; todayCount: number; unmatchedCount: number; activePoints: number; totalPoints: number; activeMembers: number; chart: { date: string; amount: number; count: number }[]; recentPayments: Payment[]; topPoints: { id: string; code: string; name: string; members: number; collected: number }[] };
+export type ReportRow = { qr_number: string; full_name: string; phone: string; payment_count: number; total: number };
+export type Report = { point: { id: string; code: string; name: string } | null; from: string; to: string; rows: ReportRow[]; grandTotal: number; paymentCount: number; activeCase?: WelfareCase | null };
+export type ImportRow = { full_name: string; phone: string; qr_number: string; pickup_code: string };
+export type SessionUser = { email: string; name: string; demo: boolean };
+export type Screen = 'dashboard' | 'pickup-points' | 'members' | 'payments' | 'reports' | 'cases';
+export type Filters = { search?: string; point?: string; status?: string; from?: string; to?: string; page?: number; pageSize?: number; active?: string; days?: number };
+export type WelfareCase = {
+  id: string;
+  member_id: string;
+  case_type: 'hospital' | 'death';
+  status: 'open' | 'closed';
+  description: string | null;
+  opened_at: string;
+  closed_at: string | null;
+  created_at: string;
+  member_name?: string | null;
+  member_phone?: string | null;
+  member_qr?: string | null;
+  pickup_name?: string | null;
+  pickup_code?: string | null;
+};
