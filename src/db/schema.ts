@@ -20,6 +20,7 @@ export const members = pgTable('members', {
   fullName: text('full_name').notNull(),
   phone: text('phone').notNull(),
   qrNumber: text('qr_number').notNull(),
+  idNumber: text('id_number'),
   isActive: boolean('is_active').notNull().default(true),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [

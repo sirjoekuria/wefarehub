@@ -11,7 +11,7 @@ const startOf = (date: string) => new Date(`${date}T00:00:00+03:00`);
 const endOf = (date: string) => new Date(startOf(date).getTime() + 86400000);
 const uuid = (id: unknown) => { const s = String(id || ''); if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)) throw new ApiError('The selected record was not found.'); return s; };
 const pointSelection = { id: pickupPoints.id, code: pickupPoints.code, name: pickupPoints.name, is_active: pickupPoints.isActive, created_at: pickupPoints.createdAt };
-const memberSelection = { id: members.id, pickup_point_id: members.pickupPointId, full_name: members.fullName, phone: members.phone, qr_number: members.qrNumber, is_active: members.isActive, created_at: members.createdAt };
+const memberSelection = { id: members.id, pickup_point_id: members.pickupPointId, full_name: members.fullName, phone: members.phone, qr_number: members.qrNumber, id_number: members.idNumber, is_active: members.isActive, created_at: members.createdAt };
 const paymentSelection = { id: payments.id, mpesa_receipt: payments.mpesaReceipt, amount: payments.amount, payer_phone: payments.payerPhone, bill_ref_raw: payments.billRefRaw, pickup_code_parsed: payments.pickupCodeParsed, qr_parsed: payments.qrParsed, member_id: payments.memberId, status: payments.status, paid_at: payments.paidAt, created_at: payments.createdAt, member_name: members.fullName, pickup_name: pickupPoints.name, pickup_code: pickupPoints.code };
 
 export async function localDashboard(days = 14) {
@@ -97,7 +97,7 @@ export async function localMutation(action: string, body: Record<string, unknown
   }
   if (action === 'create-member' || action === 'update-member') {
     const input = validateMember(values);
-    const data = { pickupPointId: input.pickup_point_id, fullName: input.full_name, qrNumber: input.qr_number, phone: input.phone, isActive: input.is_active };
+    const data = { pickupPointId: input.pickup_point_id, fullName: input.full_name, qrNumber: input.qr_number, phone: input.phone, idNumber: input.id_number, isActive: input.is_active };
     const [point] = await db.select().from(pickupPoints).where(eq(pickupPoints.id, data.pickupPointId));
     if (!point?.isActive) throw new ApiError('Choose an active pickup point.');
     if (action === 'create-member') return (await db.insert(members).values(data).returning())[0];

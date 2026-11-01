@@ -110,26 +110,42 @@ h1, h2, h3, h4, .display { font-family: 'Manrope', sans-serif; color: #0f172a; }
   .input::placeholder { color: #64748b; }
   .field-label { @apply mb-2 block text-[14px] font-bold text-[#0f172a]; }
 
-  /* RAISED CARDS: Distinct 3D elevation against background */
+  /* RAISED CARDS: Pearlescent frosted glass with subtle organic tint & 3D elevation */
   .card { 
-    @apply rounded-2xl bg-white/95; 
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border: 1px solid rgba(255, 255, 255, 0.95);
+    @apply rounded-2xl; 
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.96) 0%, rgba(246, 252, 248, 0.93) 45%, rgba(239, 248, 243, 0.90) 100%);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid rgba(180, 215, 195, 0.55);
     box-shadow: 
-      0 1px 3px rgba(15, 23, 42, 0.05),
-      0 8px 20px -3px rgba(15, 23, 42, 0.08),
-      0 18px 36px -6px rgba(15, 23, 42, 0.08),
-      0 0 0 1px rgba(203, 213, 225, 0.6);
-    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+      inset 0 1px 1px 0 rgba(255, 255, 255, 0.98),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.65),
+      0 1px 3px rgba(15, 23, 42, 0.04),
+      0 10px 28px -4px rgba(22, 101, 52, 0.08),
+      0 22px 45px -10px rgba(15, 23, 42, 0.06);
+    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.22s;
   }
   .card:hover {
     box-shadow: 
-      0 2px 6px rgba(15, 23, 42, 0.06),
-      0 12px 28px -3px rgba(15, 23, 42, 0.11),
-      0 26px 48px -8px rgba(15, 23, 42, 0.12),
-      0 0 0 1px rgba(148, 163, 184, 0.75);
-    transform: translateY(-2.5px);
+      inset 0 1px 2px 0 #ffffff,
+      inset 0 0 0 1px rgba(255, 255, 255, 0.85),
+      0 4px 14px rgba(15, 23, 42, 0.05),
+      0 18px 40px -4px rgba(22, 101, 52, 0.15),
+      0 30px 60px -10px rgba(15, 23, 42, 0.08);
+    border-color: rgba(85, 175, 125, 0.75);
+    transform: translateY(-2px);
+  }
+
+  /* Vibrant Ambient Stat Card Variants */
+  .stat-card-emerald {
+    background: linear-gradient(135deg, rgba(236, 253, 245, 0.95) 0%, rgba(255, 255, 255, 0.92) 50%, rgba(209, 250, 229, 0.88) 100%) !important;
+    border: 1px solid rgba(110, 231, 183, 0.65) !important;
+    box-shadow: inset 0 1px 1px #fff, 0 8px 24px -4px rgba(16, 185, 129, 0.12), 0 18px 36px -8px rgba(15, 23, 42, 0.05) !important;
+  }
+  .stat-card-amber {
+    background: linear-gradient(135deg, rgba(254, 252, 232, 0.95) 0%, rgba(255, 255, 255, 0.92) 50%, rgba(254, 243, 199, 0.88) 100%) !important;
+    border: 1px solid rgba(252, 211, 77, 0.65) !important;
+    box-shadow: inset 0 1px 1px #fff, 0 8px 24px -4px rgba(245, 158, 11, 0.12), 0 18px 36px -8px rgba(15, 23, 42, 0.05) !important;
   }
 
   .icon-button { 
@@ -143,12 +159,14 @@ h1, h2, h3, h4, .display { font-family: 'Manrope', sans-serif; color: #0f172a; }
 
   .table-wrap { @apply w-full overflow-x-auto; scrollbar-width: thin; }
   .data-table { @apply w-full border-collapse text-left; white-space: nowrap; }
-  .data-table thead { background: rgba(241, 245, 249, 0.85); }
-  .data-table th { @apply border-y border-[#e2e8f0] px-5 py-3.5 text-[12.5px] font-bold uppercase; letter-spacing: .06em; color: #0f172a; }
-  .data-table td { @apply border-b border-[#e2e8f0] px-5 py-[16px] text-[14px] text-[#0f172a]; }
+  .data-table thead { 
+    background: linear-gradient(90deg, rgba(234, 246, 239, 0.9) 0%, rgba(241, 248, 244, 0.85) 100%); 
+  }
+  .data-table th { @apply border-y border-[#d8e7dc] px-5 py-3.5 text-[12.5px] font-bold uppercase; letter-spacing: .06em; color: #14532d; }
+  .data-table td { @apply border-b border-[#e5efe7] px-5 py-[16px] text-[14px] text-[#0f172a]; }
   .data-table tbody tr:last-child td { border-bottom: 0; }
   .data-table tbody tr { transition: background .16s; }
-  .data-table tbody tr:hover { background: rgba(248, 250, 252, 0.95); }
+  .data-table tbody tr:hover { background: rgba(235, 248, 240, 0.75); }
 
   .badge { 
     @apply inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] font-bold shadow-xs; 
@@ -347,17 +365,27 @@ h1, h2, h3, h4, .display {
   max-width: 580px; 
   max-height: calc(100dvh - 48px); 
   overflow-y: auto; 
-  border-radius: 20px; 
-  background: rgba(255, 255, 255, 0.98); 
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.95);
+  border-radius: 22px; 
+  background: linear-gradient(155deg, rgba(255, 255, 255, 0.98) 0%, rgba(247, 252, 248, 0.96) 55%, rgba(240, 248, 243, 0.94) 100%); 
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(180, 215, 195, 0.65);
   box-shadow: 
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.98),
     0 25px 65px -12px rgba(15, 23, 42, 0.35), 
-    0 0 0 1px rgba(203, 213, 225, 0.6); 
+    0 0 0 1px rgba(180, 215, 195, 0.4); 
   color: #0f172a; 
 }
 .modal-panel.wide { max-width: 920px; }
-.modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 24px 26px 20px; border-bottom: 1px solid #e2e8f0; }
+.modal-head { 
+  display: flex; 
+  align-items: flex-start; 
+  justify-content: space-between; 
+  gap: 16px; 
+  padding: 24px 26px 20px; 
+  border-bottom: 1px solid rgba(180, 215, 195, 0.35); 
+  background: linear-gradient(90deg, rgba(240, 249, 243, 0.65) 0%, rgba(255, 255, 255, 0.4) 100%); 
+}
 
 .skeleton { background: linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 7px; }
 @keyframes shimmer { to { background-position: -200% 0; } }
@@ -437,19 +465,32 @@ html.dark body {
 }
 
 html.dark .card {
-  background: rgba(15, 23, 42, 0.88);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: linear-gradient(145deg, rgba(16, 26, 38, 0.94) 0%, rgba(13, 33, 25, 0.90) 50%, rgba(10, 22, 29, 0.94) 100%);
+  border: 1px solid rgba(45, 95, 68, 0.45);
   box-shadow: 
-    0 2px 5px rgba(0, 0, 0, 0.5),
-    0 12px 28px -4px rgba(0, 0, 0, 0.65),
-    0 0 0 1px rgba(255, 255, 255, 0.06);
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.08),
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    0 16px 36px -6px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(22, 101, 52, 0.2);
   color: #f1f5f9;
 }
 html.dark .card:hover {
+  border-color: rgba(52, 211, 153, 0.55);
   box-shadow: 
-    0 4px 8px rgba(0, 0, 0, 0.6),
-    0 18px 36px -6px rgba(0, 0, 0, 0.8),
-    0 0 0 1px rgba(34, 197, 94, 0.35);
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.14),
+    0 8px 20px rgba(0, 0, 0, 0.5),
+    0 24px 48px -6px rgba(0, 0, 0, 0.7),
+    0 0 30px -4px rgba(16, 185, 129, 0.22);
+}
+html.dark .stat-card-emerald {
+  background: linear-gradient(135deg, rgba(6, 44, 27, 0.9) 0%, rgba(15, 23, 42, 0.9) 60%, rgba(13, 33, 25, 0.9) 100%) !important;
+  border-color: rgba(34, 197, 94, 0.35) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 12px 30px -4px rgba(0, 0, 0, 0.5) !important;
+}
+html.dark .stat-card-amber {
+  background: linear-gradient(135deg, rgba(45, 28, 6, 0.9) 0%, rgba(15, 23, 42, 0.9) 60%, rgba(41, 25, 8, 0.9) 100%) !important;
+  border-color: rgba(245, 158, 11, 0.35) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 12px 30px -4px rgba(0, 0, 0, 0.5) !important;
 }
 
 html.dark .input {
@@ -564,12 +605,14 @@ html.dark .nav-item.active {
 }
 
 html.dark .modal-panel {
-  background: rgba(15, 23, 42, 0.98);
-  border-color: rgba(255, 255, 255, 0.12);
+  background: linear-gradient(155deg, rgba(16, 26, 38, 0.98) 0%, rgba(13, 33, 25, 0.95) 55%, rgba(10, 22, 29, 0.98) 100%);
+  border: 1px solid rgba(45, 95, 68, 0.55);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 25px 65px -12px rgba(0, 0, 0, 0.7);
   color: #f8fafc;
 }
 html.dark .modal-head {
-  border-color: #334155;
+  border-color: rgba(45, 95, 68, 0.4);
+  background: linear-gradient(90deg, rgba(13, 33, 25, 0.8) 0%, rgba(15, 23, 42, 0.7) 100%);
 }
 
 html.dark .report-paper {

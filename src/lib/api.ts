@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import type { Dashboard, Filters, ImportRow, Page, Payment, SessionUser, WelfareCase } from './types';
+import type { Dashboard, Filters, ImportRow, Member, Page, Payment, SessionUser, WelfareCase } from './types';
 import { normalizePhone, validDateRange, validFilterDates } from './utils';
 import { validatePoint, validateMember, validateImport } from './validation';
 
@@ -212,6 +212,37 @@ export async function list<T>(resource: string, filters: Filters = {}): Promise<
     if (resource === 'payments') { const member = row.members as { full_name: string; pickup_points: { code: string; name: string } } | null; return { ...row, member_name: member?.full_name, pickup_name: member?.pickup_points?.name, pickup_code: member?.pickup_points?.code }; }
     return row;
   });
+
+  // Enrich members with id_number from audit trail if column is not directly on members table
+  if (resource === 'members' || resource === 'member-options') {
+    const memberItems = items as unknown as Member[];
+    const missingIds = memberItems.filter(m => !m.id_number).map(m => m.id);
+    if (missingIds.length > 0) {
+      try {
+        const { data: idAudits } = await db
+          .from('audit_logs')
+          .select('entity_id, details, created_at')
+          .eq('entity_type', 'member')
+          .in('entity_id', missingIds)
+          .not('details->id_number', 'is', null)
+          .order('created_at', { ascending: false });
+        if (idAudits && idAudits.length > 0) {
+          const map = new Map<string, string>();
+          for (const a of idAudits) {
+            if (a.entity_id && a.details?.id_number && !map.has(a.entity_id)) {
+              map.set(a.entity_id, String(a.details.id_number));
+            }
+          }
+          for (const m of memberItems) {
+            if (!m.id_number && map.has(m.id)) {
+              m.id_number = map.get(m.id);
+            }
+          }
+        }
+      } catch {}
+    }
+  }
+
   return { items: items as T[], total: count || 0, page, pageSize };
 }
 export async function dashboard(days: number): Promise<Dashboard> { if (!isSupabase) return local(`/api/data?resource=dashboard&days=${days}`); const { data, error } = await supabase().rpc('admin_dashboard', { p_days: days }); if (error) throw error; return data; }
@@ -255,6 +286,21 @@ export async function mutate(action: string, payload: MutationPayload) {
       } catch (err) {
         if (err instanceof Error && err.message.includes('already registered')) throw err;
       }
+
+      // Also check audit_logs for uniqueness
+      try {
+        const { data: existingAudit } = await db
+          .from('audit_logs')
+          .select('entity_id, entity_name, details')
+          .eq('entity_type', 'member')
+          .eq('details->>id_number', data.id_number)
+          .limit(1);
+        if (existingAudit && existingAudit.length > 0 && existingAudit[0].entity_id !== payload.id) {
+          throw new Error(`National ID ${data.id_number} is already registered to ${existingAudit[0].entity_name || 'another member'}. Each member must have a unique ID number.`);
+        }
+      } catch (err) {
+        if (err instanceof Error && err.message.includes('already registered')) throw err;
+      }
     }
 
     // Try saving with id_number; if column does not exist yet in DB, fallback without it
@@ -276,7 +322,10 @@ export async function mutate(action: string, payload: MutationPayload) {
     }
     if (result.error) throw result.error;
 
-    if (!result.error) {
+    if (!result.error && result.data) {
+      if (data.id_number) {
+        result.data.id_number = data.id_number;
+      }
       try {
         await db.from('audit_logs').insert({
           action: action === 'create-member' ? 'member.create' : 'member.update',
