@@ -206,7 +206,7 @@ function SetNewPasswordModal({ onClose, onSuccess }: { onClose: () => void; onSu
   );
 }
 function useQuerySummary(enabled: boolean) {
-  const { data, refresh } = useQuery(() => enabled ? list<Payment>('payments', { status: 'unmatched', pageSize: 5 }) : Promise.resolve({ total: 0, items: [], page: 1, pageSize: 5 }), enabled ? 'unmatched-summary' : 'signed-out');
+  const { data, refresh } = useQuery(() => enabled ? list<Payment>('payments', { status: 'unmatched', pageSize: 10 }) : Promise.resolve({ total: 0, items: [], page: 1, pageSize: 10 }), enabled ? 'unmatched-summary' : 'signed-out');
   return { total: data?.total || 0, refresh };
 }
 function PaymentGuide({ onClose, notify, demo }: { onClose: () => void; notify: (message: string) => void; demo?: boolean }) {

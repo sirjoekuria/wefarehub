@@ -71,7 +71,7 @@ begin
     'chart', coalesce(jsonb_agg(jsonb_build_object('date', to_char(d.day_value, 'YYYY-MM-DD'), 'amount', coalesce(p.total, 0), 'count', coalesce(p.count, 0)) order by d.day_value), '[]'::jsonb),
     'recentPayments', (select coalesce(jsonb_agg(x.obj order by x.paid_at desc), '[]'::jsonb) from (
       select p.paid_at, jsonb_build_object('id', p.id, 'mpesa_receipt', p.mpesa_receipt, 'amount', p.amount, 'payer_phone', p.payer_phone, 'bill_ref_raw', p.bill_ref_raw, 'pickup_code_parsed', p.pickup_code_parsed, 'qr_parsed', p.qr_parsed, 'member_id', p.member_id, 'status', p.status, 'paid_at', p.paid_at, 'created_at', p.created_at, 'member_name', m.full_name, 'pickup_name', pp.name, 'pickup_code', pp.code) obj
-      from payments p left join members m on m.id=p.member_id left join pickup_points pp on pp.id=m.pickup_point_id order by p.paid_at desc limit 7
+      from payments p left join members m on m.id=p.member_id left join pickup_points pp on pp.id=m.pickup_point_id order by p.paid_at desc limit 10
     ) x),
     'topPoints', (select coalesce(jsonb_agg(y.obj order by y.total desc), '[]'::jsonb) from (
       select coalesce(sum(p.amount), 0) total, jsonb_build_object('id', pp.id, 'code', pp.code, 'name', pp.name, 'members', count(distinct m.id), 'collected', coalesce(sum(p.amount), 0)) obj

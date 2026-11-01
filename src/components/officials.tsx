@@ -14,7 +14,8 @@ import {
   Users 
 } from 'lucide-react';
 import type { OfficialUser } from '@/lib/types';
-import { Avatar, EmptyState, ErrorState, LoadingState, Spinner } from './ui';
+import { Avatar, EmptyState, ErrorState, LoadingState, Pagination, Spinner } from './ui';
+
 
 export function Officials({ 
   notify, 
@@ -28,6 +29,9 @@ export function Officials({
   const [error, setError] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'suspended'>('all');
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
+
 
   const fetchOfficials = async () => {
     setLoading(true);
@@ -82,6 +86,8 @@ export function Officials({
     if (filter === 'suspended') return o.approval_status === 'suspended';
     return true;
   });
+  const pagedOfficials = filteredOfficials.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
 
   return (
     <div className="page-enter space-y-6">
@@ -125,7 +131,7 @@ export function Officials({
             </div>
 
             <button
-              onClick={() => setFilter('pending')}
+              onClick={() => { setFilter('pending'); setPage(1); }}
               className="btn btn-primary self-start !min-h-9 !py-1.5 !text-xs font-bold sm:self-auto"
             >
               Review Pending ({pendingList.length})
@@ -137,7 +143,7 @@ export function Officials({
       {/* Filter Tabs */}
       <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3 dark:border-slate-800">
         <button
-          onClick={() => setFilter('all')}
+          onClick={() => { setFilter('all'); setPage(1); }}
           className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
             filter === 'all'
               ? 'bg-[#167653] text-white shadow-xs'
@@ -147,7 +153,7 @@ export function Officials({
           All Officials ({officials.length})
         </button>
         <button
-          onClick={() => setFilter('pending')}
+          onClick={() => { setFilter('pending'); setPage(1); }}
           className={`relative rounded-xl px-4 py-2 text-xs font-bold transition-all ${
             filter === 'pending'
               ? 'bg-amber-500 text-white shadow-xs'
@@ -162,7 +168,7 @@ export function Officials({
           )}
         </button>
         <button
-          onClick={() => setFilter('approved')}
+          onClick={() => { setFilter('approved'); setPage(1); }}
           className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
             filter === 'approved'
               ? 'bg-[#167653] text-white shadow-xs'
@@ -172,7 +178,7 @@ export function Officials({
           Approved ({officials.filter(o => o.approved).length})
         </button>
         <button
-          onClick={() => setFilter('suspended')}
+          onClick={() => { setFilter('suspended'); setPage(1); }}
           className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
             filter === 'suspended'
               ? 'bg-rose-600 text-white shadow-xs'
@@ -201,7 +207,8 @@ export function Officials({
             }
           />
         ) : (
-          <div className="table-wrap">
+          <>
+            <div className="table-wrap">
             <table className="data-table">
               <thead>
                 <tr>
@@ -214,7 +221,8 @@ export function Officials({
                 </tr>
               </thead>
               <tbody>
-                {filteredOfficials.map((official, idx) => {
+                {pagedOfficials.map((official, idx) => {
+
                   const isPending = !official.approved && official.approval_status === 'pending';
                   const isSuspended = official.approval_status === 'suspended';
                   const isActionBusy = actionLoading === official.id;
@@ -361,7 +369,11 @@ export function Officials({
               </tbody>
             </table>
           </div>
-        )}
+          {filteredOfficials.length > PAGE_SIZE && (
+            <Pagination page={page} pageSize={PAGE_SIZE} total={filteredOfficials.length} onChange={setPage} />
+          )}
+        </>
+      )}
       </div>
 
       {/* Security notice & Audit assurance */}
