@@ -15,7 +15,19 @@ async function local<T>(path: string, init?: RequestInit): Promise<T> {
   return data;
 }
 export async function getSession(): Promise<SessionUser | null> {
-  if (isSupabase) { const { data, error } = await supabase().auth.getUser(); return error || !data.user ? null : { email: data.user.email || 'Administrator', name: 'Administrator', demo: false }; }
+  if (isSupabase) { 
+    const { data, error } = await supabase().auth.getUser(); 
+    if (error || !data.user) return null;
+    const cleanEmail = data.user.email?.toLowerCase() || '';
+    const isSuperAdmin = cleanEmail === 'kuriajoe85@gmail.com';
+    const isApproved = isSuperAdmin || data.user.user_metadata?.approved === true;
+    if (!isApproved) {
+      await supabase().auth.signOut();
+      return null;
+    }
+    const name = data.user.user_metadata?.full_name || 'Administrator';
+    return { email: data.user.email || 'Administrator', name, demo: false }; 
+  }
   const data = await local<{ user: SessionUser | null }>('/api/auth/session'); return data.user;
 }
 export async function signIn(email: string, password: string) {
@@ -27,6 +39,36 @@ export async function signIn(email: string, password: string) {
       }
       throw new Error(error.message || 'Unable to sign in. Check your email and password.');
     }
+
+    const user = authData?.user;
+    const cleanEmail = email.trim().toLowerCase();
+    const isSuperAdmin = cleanEmail === 'kuriajoe85@gmail.com';
+
+    // Verify approval status for newly registered officials
+    if (!isSuperAdmin) {
+      const isApproved = user?.user_metadata?.approved === true;
+      if (!isApproved) {
+        await supabase().auth.signOut();
+        try {
+          await supabase().from('audit_logs').insert({
+            actor_id: user?.id || null,
+            actor_email: cleanEmail,
+            action: 'auth.login_blocked_unapproved',
+            entity_type: 'auth',
+            entity_name: 'Unapproved official sign-in blocked',
+            details: {
+              role: user?.user_metadata?.role || 'Official',
+              approval_status: user?.user_metadata?.approval_status || 'pending',
+              reason: 'Account requires administrator approval before access',
+            },
+          });
+        } catch {}
+        throw new Error(
+          'Your official account is pending approval by the Administrator. An already signed-in administrator must approve your account before you can access the workspace.'
+        );
+      }
+    }
+
     // Record audit event for successful login
     try {
       await supabase().from('audit_logs').insert({

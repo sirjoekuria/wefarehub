@@ -7,7 +7,21 @@ export type ReportRow = { qr_number: string; full_name: string; phone: string; p
 export type Report = { point: { id: string; code: string; name: string } | null; from: string; to: string; rows: ReportRow[]; grandTotal: number; paymentCount: number; activeCase?: WelfareCase | null };
 export type ImportRow = { full_name: string; phone: string; qr_number: string; pickup_code: string };
 export type SessionUser = { email: string; name: string; demo: boolean };
-export type Screen = 'dashboard' | 'pickup-points' | 'members' | 'payments' | 'reports' | 'cases' | 'audit';
+export type Screen = 'dashboard' | 'pickup-points' | 'members' | 'payments' | 'reports' | 'cases' | 'audit' | 'officials';
+export type OfficialUser = {
+  id: string;
+  email: string;
+  full_name: string;
+  role: string;
+  phone: string;
+  approved: boolean;
+  approval_status: 'approved' | 'pending' | 'suspended';
+  approved_by?: string | null;
+  approved_at?: string | null;
+  created_at: string;
+  last_sign_in_at?: string | null;
+  is_super_admin: boolean;
+};
 export type AuditLog = {
   id: string;
   actor_id?: string | null;

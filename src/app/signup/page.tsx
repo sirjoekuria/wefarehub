@@ -116,29 +116,35 @@ export default function SignupPage() {
           {success ? (
             /* SUCCESS STATE */
             <div className="py-6 text-center">
-              <span className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-emerald-300 bg-emerald-50 text-[#167653] shadow-md dark:border-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
+              <span className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-amber-300 bg-amber-50 text-amber-700 shadow-md dark:border-amber-700 dark:bg-amber-950/60 dark:text-amber-300">
                 <CheckCircle2 size={36} strokeWidth={2.2} />
               </span>
               <h2 className="text-[26px] font-extrabold tracking-tight text-slate-900 dark:text-white">
-                Account Created!
+                Registration Submitted!
               </h2>
               <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-                Welcome to ROCS CREW, <strong>{createdName}</strong>. Your official administrator credentials are now active and pre-verified.
+                Welcome to ROCS CREW, <strong>{createdName}</strong>. Your profile has been submitted and is currently <strong>awaiting approval by an already signed-in administrator</strong>.
               </p>
 
-              <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4 text-left text-xs dark:border-slate-700 dark:bg-slate-800">
-                <p className="font-semibold text-slate-700 dark:text-slate-200">Registered Details:</p>
-                <div className="mt-2 space-y-1 text-slate-600 dark:text-slate-400">
-                  <p>Email: <strong className="text-slate-900 dark:text-white">{email}</strong></p>
-                  <p>Official Role: <strong className="text-slate-900 dark:text-white">{role}</strong></p>
+              <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50/70 p-4 text-left text-xs dark:border-amber-900/60 dark:bg-amber-950/40">
+                <div className="flex items-center gap-2 font-bold text-amber-800 dark:text-amber-300">
+                  <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                  STATUS: PENDING ADMIN APPROVAL
                 </div>
+                <div className="mt-2.5 space-y-1 text-slate-600 dark:text-slate-300">
+                  <p>Registered Email: <strong className="text-slate-900 dark:text-white">{email}</strong></p>
+                  <p>Designated Role: <strong className="text-slate-900 dark:text-white">{role}</strong></p>
+                </div>
+                <p className="mt-3 text-[11.5px] leading-relaxed text-amber-800/90 dark:text-amber-400">
+                  For security, access is restricted until the administrator confirms your identity and approves your account from the administration workspace.
+                </p>
               </div>
 
               <a
                 href="/"
                 className="btn btn-primary mt-8 w-full !py-3.5 font-bold !text-[15px]"
               >
-                Sign In to Workspace
+                Back to Sign In
                 <ArrowRight size={17} className="ml-auto" />
               </a>
             </div>

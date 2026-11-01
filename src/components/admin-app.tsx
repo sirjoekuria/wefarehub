@@ -13,6 +13,7 @@ import { Payments } from './payments';
 import { Reports } from './reports';
 import { Cases } from './cases';
 import { AuditLogs } from './audit-logs';
+import { Officials } from './officials';
 import { Login } from './login';
 import { InlineError, Modal, Spinner, Toast, useQuery } from './ui';
 import { Eye, EyeOff, KeyRound, LockKeyhole } from 'lucide-react';
@@ -79,19 +80,34 @@ export function AdminApp() {
     window.history.pushState({}, '', `#/${next}`);
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
+  const [pendingOfficials, setPendingOfficials] = useState(0);
+  const refreshOfficialsCount = useCallback(() => {
+    if (!user) return;
+    fetch('/api/auth/officials')
+      .then(r => r.json())
+      .then(d => {
+        if (typeof d.pendingCount === 'number') setPendingOfficials(d.pendingCount);
+      })
+      .catch(() => {});
+  }, [user]);
+  useEffect(() => {
+    refreshOfficialsCount();
+  }, [refreshOfficialsCount, screen]);
+
   const logout = async () => {
     try { await signOut(); setUser(null); setOptions({}); window.history.replaceState({}, '', '/'); }
     catch (e) { notify(errorMessage(e), true); }
   };
   return <>
     {checking ? <div className="flex min-h-screen flex-col items-center justify-center gap-5 bg-[#f5f8f2]"><Brand /><div className="mt-3 flex items-center gap-2 text-[11px] text-[#718466]"><span className="live-dot" />Preparing your workspace…</div></div> : !user ? <Login onSuccess={refreshSession} initialError={sessionError} /> :
-      <AdminShell screen={screen} navigate={navigate} user={user} unmatched={summary.total} onLogout={logout} onGuide={() => setGuide(true)}>
+      <AdminShell screen={screen} navigate={navigate} user={user} unmatched={summary.total} pendingOfficials={pendingOfficials} onLogout={logout} onGuide={() => setGuide(true)}>
         {screen === 'dashboard' && <Dashboard navigate={navigate} onGuide={() => setGuide(true)} notify={notify} />}
         {screen === 'pickup-points' && <PickupPoints points={points} pointsLoading={pointsLoading} pointsError={pointsError} refreshPoints={() => { refreshPoints(); summary.refresh(); }} notify={notify} navigate={navigate} />}
         {screen === 'members' && <Members points={points} initialPoint={options.point} refreshPoints={refreshPoints} notify={notify} />}
         {screen === 'payments' && <Payments points={points} initialStatus={options.status || 'all'} initialSearch={options.search || ''} unmatched={summary.total} refreshSummary={summary.refresh} notify={notify} />}
         {screen === 'reports' && <Reports points={points} notify={notify} />}
         {screen === 'cases' && <Cases notify={notify} />}
+        {screen === 'officials' && <Officials notify={(msg, err) => { notify(msg, err); refreshOfficialsCount(); }} adminEmail={user.email} />}
         {screen === 'audit' && <AuditLogs notify={notify} />}
       </AdminShell>}
     {guide && <PaymentGuide onClose={() => setGuide(false)} notify={notify} demo={user?.demo} />}

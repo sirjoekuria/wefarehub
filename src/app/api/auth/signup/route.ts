@@ -55,7 +55,12 @@ export async function POST(req: Request) {
       );
     }
 
-    // Create user with pre-confirmed email so they are immediately authorized to log in
+    // Determine if this user is the root super admin
+    const superAdminEmail = (process.env.ADMIN_EMAIL || 'kuriajoe85@gmail.com').toLowerCase();
+    const isSuperAdmin = cleanEmail === superAdminEmail;
+    const isApproved = isSuperAdmin; // Super admin is auto-approved; all other officials require admin approval
+
+    // Create user in Supabase
     const { data: newUser, error: createErr } = await admin.auth.admin.createUser({
       email: cleanEmail,
       password: password,
@@ -65,6 +70,9 @@ export async function POST(req: Request) {
         role: cleanRole || 'Official',
         phone: cleanPhone,
         is_admin: true,
+        approved: isApproved,
+        approval_status: isApproved ? 'approved' : 'pending',
+        created_at: new Date().toISOString(),
       },
     });
 
@@ -72,29 +80,35 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: createErr.message }, { status: 400 });
     }
 
-    // Audit log
+    // Audit log recording official signup with pending status
     try {
       await admin.from('audit_logs').insert({
         actor_email: cleanEmail,
-        action: 'auth.official_signup',
+        action: isApproved ? 'auth.superadmin_created' : 'official.signup_pending',
         entity_type: 'official',
+        entity_id: newUser.user?.id,
         entity_name: cleanName,
         details: {
           role: cleanRole || 'Official',
           phone: cleanPhone,
           email: cleanEmail,
           userId: newUser.user?.id,
+          status: isApproved ? 'approved' : 'pending_admin_approval',
         },
       });
     } catch {}
 
     return NextResponse.json({
       success: true,
-      message: `Welcome, ${cleanName}! Your official account has been created successfully.`,
+      approved: isApproved,
+      message: isApproved
+        ? `Welcome, ${cleanName}! Your administrator profile is active.`
+        : `Registration submitted! Welcome, ${cleanName}. Your official account is currently pending approval by an active administrator.`,
       user: {
         email: cleanEmail,
         name: cleanName,
         role: cleanRole,
+        approved: isApproved,
       },
     });
   } catch (err: unknown) {
