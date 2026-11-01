@@ -259,10 +259,25 @@ export async function POST(req: NextRequest) {
     let qrNumber: string | null = null;
 
     if (refRaw) {
-      const parsedRef = parseReference(refRaw);
-      if (parsedRef) {
-        pickupCode = parsedRef.code;
-        qrNumber = parsedRef.qr;
+      const normalizedRef = normalizeReference(refRaw);
+      const parts = normalizedRef.split('#');
+
+      if (parts.length === 3) {
+        // Rocspay format: APPCODE#PICKUPCODE#QRNUMBER  (e.g. WELFARE#RC001#001)
+        // Drop the first segment (app code) and parse the remaining two
+        const stripped = `${parts[1]}#${parts[2]}`;
+        const parsedRef = parseReference(stripped);
+        if (parsedRef) {
+          pickupCode = parsedRef.code;
+          qrNumber = parsedRef.qr;
+        }
+      } else {
+        // Standard format: PICKUPCODE#QRNUMBER  (e.g. RC001#001)
+        const parsedRef = parseReference(normalizedRef);
+        if (parsedRef) {
+          pickupCode = parsedRef.code;
+          qrNumber = parsedRef.qr;
+        }
       }
     }
 
