@@ -12,3 +12,5 @@ blob-report/
 .vercel/
 *.zip
 supabase/.temp/
+
+.vercel
