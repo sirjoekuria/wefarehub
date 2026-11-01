@@ -149,8 +149,15 @@ export async function list<T>(resource: string, filters: Filters = {}): Promise<
   } else throw new Error('Unknown resource.');
   const { data, error, count } = await query.range(from, from + pageSize - 1);
   if (error) {
-    if (resource === 'audit-logs' && (error.code === '42P01' || error.message?.includes('does not exist'))) {
-      return { items: [] as T[], total: 0, page, pageSize };
+    if (
+      resource === 'audit-logs' &&
+      (error.code === '42P01' ||
+        error.code === 'PGRST205' ||
+        error.message?.includes('schema cache') ||
+        error.message?.includes('audit_logs') ||
+        error.message?.includes('does not exist'))
+    ) {
+      return { items: [] as T[], total: 0, page, pageSize, notConfigured: true };
     }
     throw new Error(error.message);
   }

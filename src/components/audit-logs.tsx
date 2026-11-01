@@ -20,7 +20,10 @@ import {
   ShieldCheck, 
   UserCheck, 
   Users, 
-  X 
+  X,
+  Copy,
+  ExternalLink,
+  Database
 } from 'lucide-react';
 import { list } from '@/lib/api';
 import { dateLabel, nairobiDate } from '@/lib/utils';
@@ -36,6 +39,39 @@ const CATEGORIES = [
   { id: 'auth', label: 'Security & Auth', icon: Lock, prefix: 'auth.' },
 ];
 
+const AUDIT_LOGS_SQL = `-- Run in Supabase SQL Editor:
+-- https://supabase.com/dashboard/project/zqadbcgwlxqiibnvdxis/sql/new
+
+create table if not exists public.audit_logs (
+  id uuid primary key default gen_random_uuid(),
+  actor_id uuid,
+  actor_email text not null default 'system',
+  action text not null,
+  entity_type text not null,
+  entity_id text,
+  entity_name text,
+  details jsonb not null default '{}'::jsonb,
+  ip_address text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists audit_logs_created_at_idx on public.audit_logs(created_at desc);
+create index if not exists audit_logs_action_idx on public.audit_logs(action);
+create index if not exists audit_logs_entity_type_idx on public.audit_logs(entity_type);
+create index if not exists audit_logs_actor_email_idx on public.audit_logs(actor_email);
+
+alter table public.audit_logs enable row level security;
+revoke all on public.audit_logs from anon;
+grant select, insert on public.audit_logs to authenticated;
+grant select, insert on public.audit_logs to service_role;
+
+drop policy if exists "Admins view audit logs" on public.audit_logs;
+create policy "Admins view audit logs" on public.audit_logs for select to authenticated using (true);
+
+drop policy if exists "System insert audit logs" on public.audit_logs;
+create policy "System insert audit logs" on public.audit_logs for insert to authenticated with check (true);
+`;
+
 export function AuditLogs({ notify }: { notify: (msg: string, error?: boolean) => void }) {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -43,6 +79,18 @@ export function AuditLogs({ notify }: { notify: (msg: string, error?: boolean) =
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [inspecting, setInspecting] = useState<AuditLog | null>(null);
+  const [copiedSql, setCopiedSql] = useState(false);
+
+  const copyMigrationSql = async () => {
+    try {
+      await navigator.clipboard.writeText(AUDIT_LOGS_SQL);
+      setCopiedSql(true);
+      notify('Migration SQL copied! Paste into Supabase SQL Editor and click Run.');
+      setTimeout(() => setCopiedSql(false), 3500);
+    } catch {
+      notify('Please select and copy the SQL code below.');
+    }
+  };
 
   const debouncedSearch = useDebounced(search, 300);
 
@@ -168,7 +216,41 @@ export function AuditLogs({ notify }: { notify: (msg: string, error?: boolean) =
 
       {/* Main Table View */}
       <div className="card overflow-hidden">
-        {error ? (
+        {data?.notConfigured || (error && (error.includes('audit_logs') || error.includes('schema cache'))) ? (
+          <div className="p-8 text-center sm:p-12">
+            <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-amber-200 bg-amber-50 text-amber-700 shadow-xs">
+              <Database size={26} strokeWidth={1.8} />
+            </span>
+            <h2 className="text-[20px] font-extrabold text-[#0f172a]">Initialize Audit Logs Table in Supabase</h2>
+            <p className="mx-auto mt-2 max-w-lg text-[13.5px] leading-relaxed text-[#475569]">
+              To enable immutable security audit tracking, run the SQL script below in your Supabase project (<strong className="text-[#0f172a]">zqadbcgwlxqiibnvdxis</strong>).
+            </p>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <button onClick={copyMigrationSql} className="btn btn-primary">
+                {copiedSql ? <Check size={15} /> : <Copy size={15} />}
+                {copiedSql ? 'SQL Copied to Clipboard!' : 'Copy Migration SQL'}
+              </button>
+              <a
+                href="https://supabase.com/dashboard/project/zqadbcgwlxqiibnvdxis/sql/new"
+                target="_blank"
+                rel="noreferrer"
+                className="btn btn-secondary"
+              >
+                Open Supabase SQL Editor
+                <ExternalLink size={14} />
+              </a>
+              <button onClick={refresh} className="btn btn-secondary">
+                <RefreshCw size={14} />
+                I Have Run It, Refresh
+              </button>
+            </div>
+            <div className="mx-auto mt-6 max-w-xl text-left">
+              <pre className="max-h-[190px] overflow-x-auto rounded-xl border border-slate-700 bg-slate-900 p-4 font-mono text-[11.5px] leading-relaxed text-slate-200">
+                {AUDIT_LOGS_SQL}
+              </pre>
+            </div>
+          </div>
+        ) : error ? (
           <ErrorState message={error} retry={refresh} />
         ) : loading ? (
           <LoadingState rows={8} />
