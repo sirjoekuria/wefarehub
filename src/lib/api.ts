@@ -50,7 +50,11 @@ export async function resendConfirmationEmail(email: string) {
 }
 export async function resetPassword(email: string) {
   if (isSupabase) {
-    const redirectUrl = typeof window !== 'undefined' ? `${window.location.origin}/#reset` : undefined;
+    const origin =
+      typeof window !== 'undefined' && !window.location.origin.includes('localhost')
+        ? window.location.origin
+        : 'https://welfare-delta-nine.vercel.app';
+    const redirectUrl = `${origin}/reset-password`;
     const { error } = await supabase().auth.resetPasswordForEmail(email.trim(), { redirectTo: redirectUrl });
     if (error) throw new Error(error.message);
     try {
@@ -59,7 +63,7 @@ export async function resetPassword(email: string) {
         action: 'auth.password_reset_request',
         entity_type: 'auth',
         entity_name: 'Password reset requested',
-        details: { email: email.trim() },
+        details: { email: email.trim(), redirectTo: redirectUrl },
       });
     } catch {}
     return;

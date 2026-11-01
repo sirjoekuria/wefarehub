@@ -46,7 +46,8 @@ export function AdminApp() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       if (window.location.hash.includes('type=recovery') || window.location.search.includes('type=recovery') || window.location.hash.includes('reset')) {
-        setRecovering(true);
+        window.location.href = `/reset-password${window.location.search}${window.location.hash}`;
+        return;
       }
     }
     refreshSession();
