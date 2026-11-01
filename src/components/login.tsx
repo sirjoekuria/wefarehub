@@ -112,10 +112,11 @@ export function Login({ onSuccess, initialError = '' }: { onSuccess: () => void;
           <Brand />
         </div>
 
-        <div className="mx-auto flex w-full max-w-[380px] flex-1 flex-col justify-center py-14">
-          <span className="mb-6 flex h-11 w-11 items-center justify-center rounded-xl border border-[#cbd5e1] bg-[#f1f5f9] text-[#167653]">
-            {mode === 'login' ? <ShieldCheck size={22} strokeWidth={2} /> : <KeyRound size={22} strokeWidth={2} />}
-          </span>
+        <div className="mx-auto flex w-full max-w-[430px] flex-1 flex-col justify-center py-10">
+          <div className="card p-7 sm:p-9">
+            <span className="mb-6 flex h-11 w-11 items-center justify-center rounded-xl border border-[#cbd5e1] bg-[#f1f5f9] text-[#167653]">
+              {mode === 'login' ? <ShieldCheck size={22} strokeWidth={2} /> : <KeyRound size={22} strokeWidth={2} />}
+            </span>
 
           {mode === 'login' ? (
             <>
@@ -301,6 +302,7 @@ export function Login({ onSuccess, initialError = '' }: { onSuccess: () => void;
               )}
             </>
           )}
+          </div>
         </div>
 
         <div className="flex items-center justify-center gap-2 text-[11px] font-semibold text-[#64748b]">
