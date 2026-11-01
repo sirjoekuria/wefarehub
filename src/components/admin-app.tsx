@@ -12,8 +12,11 @@ import { Members } from './members';
 import { Payments } from './payments';
 import { Reports } from './reports';
 import { Cases } from './cases';
+import { AuditLogs } from './audit-logs';
 import { Login } from './login';
-import { Modal, Toast, useQuery } from './ui';
+import { InlineError, Modal, Spinner, Toast, useQuery } from './ui';
+import { Eye, EyeOff, KeyRound, LockKeyhole } from 'lucide-react';
+import { updatePassword } from '@/lib/api';
 
 const screens = Object.keys(screenNames) as Screen[];
 function hashScreen(): Screen {
@@ -27,6 +30,7 @@ export function AdminApp() {
   const [screen, setScreen] = useState<Screen>('dashboard');
   const [options, setOptions] = useState<{ status?: string; search?: string; point?: string }>({});
   const [guide, setGuide] = useState(false);
+  const [recovering, setRecovering] = useState(false);
   const [toast, setToast] = useState<{ message: string; error?: boolean; id: number } | null>(null);
   const notify = useCallback((message: string, error = false) => setToast({ message, error, id: Date.now() }), []);
   const refreshSession = useCallback(() => {
@@ -40,12 +44,22 @@ export function AdminApp() {
     }).catch(e => setSessionError(errorMessage(e))).finally(() => setChecking(false));
   }, []);
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (window.location.hash.includes('type=recovery') || window.location.search.includes('type=recovery') || window.location.hash.includes('reset')) {
+        setRecovering(true);
+      }
+    }
     refreshSession();
     const change = () => { setScreen(hashScreen()); setOptions({}); };
     const unauthorized = () => { if (isSupabase) setUser(null); else refreshSession(); };
     window.addEventListener('hashchange', change);
     window.addEventListener('rw:unauthorized', unauthorized);
-    const subscription = isSupabase ? supabase().auth.onAuthStateChange((_event, session) => { if (!session) setUser(null); }) : null;
+    const subscription = isSupabase ? supabase().auth.onAuthStateChange((event, session) => { 
+      if (event === 'PASSWORD_RECOVERY') {
+        setRecovering(true);
+      }
+      if (!session) setUser(null); 
+    }) : null;
     return () => {
       window.removeEventListener('hashchange', change);
       window.removeEventListener('rw:unauthorized', unauthorized);
@@ -77,10 +91,102 @@ export function AdminApp() {
         {screen === 'payments' && <Payments points={points} initialStatus={options.status || 'all'} initialSearch={options.search || ''} unmatched={summary.total} refreshSummary={summary.refresh} notify={notify} />}
         {screen === 'reports' && <Reports points={points} notify={notify} />}
         {screen === 'cases' && <Cases notify={notify} />}
+        {screen === 'audit' && <AuditLogs notify={notify} />}
       </AdminShell>}
     {guide && <PaymentGuide onClose={() => setGuide(false)} notify={notify} demo={user?.demo} />}
+    {recovering && <SetNewPasswordModal onClose={() => setRecovering(false)} onSuccess={() => { setRecovering(false); notify('Your password was successfully updated!'); refreshSession(); }} />}
     {toast && <Toast message={toast.message} error={toast.error} onClose={() => setToast(null)} />}
   </>;
+}
+
+function SetNewPasswordModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [visible, setVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    if (newPassword.length < 8) {
+      setError('Password must be at least 8 characters long.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match. Please re-enter.');
+      return;
+    }
+    setLoading(true);
+    try {
+      await updatePassword(newPassword);
+      window.history.replaceState({}, '', '/');
+      onSuccess();
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal title="Set New Administrator Password" subtitle="Choose a strong new password for your administrator account" onClose={onClose}>
+      <form onSubmit={submit} className="space-y-5 p-6">
+        <InlineError message={error} />
+
+        <label className="block">
+          <span className="field-label">New Password (minimum 8 characters)</span>
+          <span className="relative block">
+            <LockKeyhole size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#64748b]" />
+            <input
+              type={visible ? 'text' : 'password'}
+              className="input !py-3 !pl-10 !pr-10"
+              placeholder="Enter new strong password"
+              value={newPassword}
+              onChange={e => setNewPassword(e.target.value)}
+              minLength={8}
+              required
+              disabled={loading}
+            />
+            <button
+              type="button"
+              className="icon-button absolute right-1.5 top-1/2 -translate-y-1/2"
+              onClick={() => setVisible(v => !v)}
+              aria-label={visible ? 'Hide password' : 'Show password'}
+            >
+              {visible ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </span>
+        </label>
+
+        <label className="block">
+          <span className="field-label">Confirm New Password</span>
+          <span className="relative block">
+            <KeyRound size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#64748b]" />
+            <input
+              type={visible ? 'text' : 'password'}
+              className="input !py-3 !pl-10"
+              placeholder="Confirm new password"
+              value={confirmPassword}
+              onChange={e => setConfirmPassword(e.target.value)}
+              minLength={8}
+              required
+              disabled={loading}
+            />
+          </span>
+        </label>
+
+        <div className="flex justify-end gap-2 border-t border-[#e2e8f0] pt-4">
+          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={loading}>
+            Cancel
+          </button>
+          <button type="submit" className="btn btn-primary" disabled={loading}>
+            {loading ? <Spinner label="Updating password…" /> : 'Save New Password'}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
 }
 function useQuerySummary(enabled: boolean) {
   const { data, refresh } = useQuery(() => enabled ? list<Payment>('payments', { status: 'unmatched', pageSize: 5 }) : Promise.resolve({ total: 0, items: [], page: 1, pageSize: 5 }), enabled ? 'unmatched-summary' : 'signed-out');

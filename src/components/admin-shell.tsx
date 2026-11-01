@@ -1,11 +1,27 @@
 'use client';
 import { useState, type ReactNode } from 'react';
-import { ArrowUpRight, Bike, ChevronRight, CircleHelp, FileBarChart2, HeartHandshake, HeartPulse, LayoutDashboard, LogOut, MapPin, Menu, ShieldCheck, UsersRound, Wallet, X } from 'lucide-react';
+import { ArrowUpRight, Bike, ChevronRight, CircleHelp, FileBarChart2, HeartHandshake, HeartPulse, LayoutDashboard, LogOut, MapPin, Menu, ScrollText, ShieldCheck, UsersRound, Wallet, X } from 'lucide-react';
 import type { Screen, SessionUser } from '@/lib/types';
 import { PAYBILL } from '@/lib/utils';
 
-export const screenNames: Record<Screen, string> = { dashboard: 'Dashboard', 'pickup-points': 'Pickup Points', members: 'Members', payments: 'Payments', reports: 'Reports', cases: 'Welfare Cases' };
-const navigation = [{ id: 'dashboard' as Screen, icon: LayoutDashboard }, { id: 'pickup-points' as Screen, icon: MapPin }, { id: 'members' as Screen, icon: UsersRound }, { id: 'payments' as Screen, icon: Wallet }, { id: 'reports' as Screen, icon: FileBarChart2 }, { id: 'cases' as Screen, icon: HeartPulse }];
+export const screenNames: Record<Screen, string> = { 
+  dashboard: 'Dashboard', 
+  'pickup-points': 'Pickup Points', 
+  members: 'Members', 
+  payments: 'Payments', 
+  reports: 'Reports', 
+  cases: 'Welfare Cases',
+  audit: 'Audit Logs',
+};
+const navigation = [
+  { id: 'dashboard' as Screen, icon: LayoutDashboard }, 
+  { id: 'pickup-points' as Screen, icon: MapPin }, 
+  { id: 'members' as Screen, icon: UsersRound }, 
+  { id: 'payments' as Screen, icon: Wallet }, 
+  { id: 'reports' as Screen, icon: FileBarChart2 }, 
+  { id: 'cases' as Screen, icon: HeartPulse },
+  { id: 'audit' as Screen, icon: ScrollText },
+];
 export function Brand({ light = false }: { light?: boolean }) { return <div className="flex items-center gap-2.5"><span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] ${light ? 'bg-white/10 text-white' : 'bg-[#1b6548] text-white'}`}><Bike size={26} strokeWidth={1.7} /></span><div><span className={`display block text-[17px] font-extrabold tracking-[.045em] ${light ? 'text-white' : 'text-[#234834]'}`}>ROCS CREW<span className="ml-0.5 align-top text-[8px]">™</span></span><span className={`mt-0.5 block text-[8px] font-medium tracking-[.08em] ${light ? 'text-white/55' : 'text-[#8d9a90]'}`}>RIDERS WELFARE ASSOCIATION</span></div></div>; }
 export function AdminShell({ children, screen, navigate, user, unmatched, onLogout, onGuide }: { children: ReactNode; screen: Screen; navigate: (s: Screen) => void; user: SessionUser; unmatched: number; onLogout: () => void; onGuide: () => void }) {
   const [mobileOpen, setMobileOpen] = useState(false);

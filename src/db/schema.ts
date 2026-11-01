@@ -1,4 +1,4 @@
-import { pgTable, pgEnum, uuid, text, boolean, timestamp, numeric, unique, index, check } from 'drizzle-orm/pg-core';
+import { pgTable, pgEnum, uuid, text, boolean, timestamp, numeric, unique, index, check, jsonb } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
 export const caseType = pgEnum('case_type', ['hospital', 'death']);
@@ -71,3 +71,21 @@ export const demoAdmins = pgTable('demo_admins', {
   passwordHash: text('password_hash').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const auditLogs = pgTable('audit_logs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  actorId: uuid('actor_id'),
+  actorEmail: text('actor_email').notNull().default('system'),
+  action: text('action').notNull(),
+  entityType: text('entity_type').notNull(),
+  entityId: text('entity_id'),
+  entityName: text('entity_name'),
+  details: jsonb('details').notNull().default({}),
+  ipAddress: text('ip_address'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('audit_logs_created_at_idx').on(table.createdAt),
+  index('audit_logs_action_idx').on(table.action),
+  index('audit_logs_entity_type_idx').on(table.entityType),
+  index('audit_logs_actor_email_idx').on(table.actorEmail),
+]);

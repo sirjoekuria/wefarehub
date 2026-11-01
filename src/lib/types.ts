@@ -7,8 +7,20 @@ export type ReportRow = { qr_number: string; full_name: string; phone: string; p
 export type Report = { point: { id: string; code: string; name: string } | null; from: string; to: string; rows: ReportRow[]; grandTotal: number; paymentCount: number; activeCase?: WelfareCase | null };
 export type ImportRow = { full_name: string; phone: string; qr_number: string; pickup_code: string };
 export type SessionUser = { email: string; name: string; demo: boolean };
-export type Screen = 'dashboard' | 'pickup-points' | 'members' | 'payments' | 'reports' | 'cases';
-export type Filters = { search?: string; point?: string; status?: string; from?: string; to?: string; page?: number; pageSize?: number; active?: string; days?: number };
+export type Screen = 'dashboard' | 'pickup-points' | 'members' | 'payments' | 'reports' | 'cases' | 'audit';
+export type AuditLog = {
+  id: string;
+  actor_id?: string | null;
+  actor_email: string;
+  action: string;
+  entity_type: string;
+  entity_id?: string | null;
+  entity_name?: string | null;
+  details?: Record<string, unknown> | null;
+  ip_address?: string | null;
+  created_at: string;
+};
+export type Filters = { search?: string; point?: string; status?: string; from?: string; to?: string; page?: number; pageSize?: number; active?: string; days?: number; action?: string; entityType?: string };
 export type WelfareCase = {
   id: string;
   member_id: string;

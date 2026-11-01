@@ -10,10 +10,20 @@ export const dynamic = 'force-dynamic';
 
 interface RawPaymentInput {
   transaction_id?: string;
+  id?: string;
   receipt?: string;
   trans_id?: string;
+  TransID?: string;
   receipt_number?: string;
   mpesa_receipt?: string;
+  mpesa_code?: string;
+  mpesa_receipt_number?: string;
+  provider_reference?: string;
+  provider_transaction_id?: string;
+  external_id?: string;
+  external_reference?: string;
+  payment_reference?: string;
+  code?: string;
   amount?: number | string;
   trans_amount?: number | string;
   account_reference?: string;
@@ -224,14 +234,65 @@ export async function POST(req: NextRequest) {
     : null;
 
   for (const item of items) {
-    const transactionId = (
-      item.transaction_id ||
-      item.receipt ||
-      item.trans_id ||
-      item.receipt_number ||
-      item.mpesa_receipt ||
-      ''
-    ).trim();
+    // Helper to identify true Safaricom M-Pesa receipt codes (e.g. SL..., TK..., RA..., 8-15 alphanumeric chars)
+    const isMpesaCode = (val?: unknown): val is string => {
+      if (!val || typeof val !== 'string') return false;
+      const s = val.trim();
+      return Boolean(s && !s.includes('-') && !s.includes(' ') && /^[A-Z0-9]{8,15}$/i.test(s));
+    };
+
+    const isUuid = (val?: unknown): boolean => {
+      if (!val || typeof val !== 'string') return false;
+      return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val.trim());
+    };
+
+    // Candidates in prioritized order: real Safaricom M-Pesa codes first
+    const candidates = [
+      item.mpesa_receipt,
+      item.mpesa_code,
+      item.mpesa_receipt_number,
+      item.trans_id,
+      item.TransID,
+      item.receipt,
+      item.receipt_number,
+      item.provider_reference,
+      item.provider_transaction_id,
+      item.external_id,
+      item.external_reference,
+      item.payment_reference,
+      item.code,
+      item.transaction_id,
+      item.id,
+    ];
+
+    let transactionId = '';
+    // 1. Look for a clean M-Pesa code first (e.g. SL..., TK...)
+    for (const c of candidates) {
+      if (isMpesaCode(c)) {
+        transactionId = c.trim().toUpperCase();
+        break;
+      }
+    }
+
+    // 2. Pick any candidate that is NOT a UUID
+    if (!transactionId) {
+      for (const c of candidates) {
+        if (typeof c === 'string' && c.trim() && !isUuid(c)) {
+          transactionId = c.trim().toUpperCase();
+          break;
+        }
+      }
+    }
+
+    // 3. Fallback to whatever identifier is present
+    if (!transactionId) {
+      for (const c of candidates) {
+        if (typeof c === 'string' && c.trim()) {
+          transactionId = c.trim();
+          break;
+        }
+      }
+    }
 
     if (!transactionId) {
       errors.push({ error: 'Missing transaction_id or receipt identifier.' });
@@ -376,6 +437,26 @@ export async function POST(req: NextRequest) {
         });
 
         if (insertError) throw insertError;
+
+        try {
+          await supabaseClient.from('audit_logs').insert({
+            actor_email: 'M-Pesa / Rocspay Webhook',
+            action: status === 'matched' ? 'payment.auto_match' : 'payment.unmatched_received',
+            entity_type: 'payment',
+            entity_id: transactionId,
+            entity_name: `M-Pesa ${transactionId} (KES ${amountNum})`,
+            details: {
+              receipt: transactionId,
+              amount: amountNum,
+              phone: normalizedPhone,
+              reference: billRefFormatted,
+              member_name: memberName || null,
+              pickup_code: pickupCode || null,
+              qr_number: qrNumber || null,
+              status,
+            },
+          });
+        } catch {}
 
         results.push({
           transaction_id: transactionId,
