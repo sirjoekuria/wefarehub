@@ -14,11 +14,16 @@ export function validateMember(input: Record<string, unknown>) {
   const qr_number = String(input.qr_number || '').trim();
   const pickup_point_id = String(input.pickup_point_id || '');
   const phone = normalizePhone(String(input.phone || ''));
+  const rawId = input.id_number !== undefined && input.id_number !== null ? String(input.id_number).trim() : '';
+  const id_number = rawId.length > 0 ? rawId : null;
+
   if (full_name.length < 2 || full_name.length > 120) throw new Error('Enter a full name between 2 and 120 characters.');
   if (!phone) throw new Error('Enter a valid Kenyan phone: 07xx, 01xx, or +254 followed by 9 digits.');
   if (!/^\d{1,12}$/.test(qr_number)) throw new Error('QR number must contain 1–12 digits. Leading zeros are preserved.');
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pickup_point_id)) throw new Error('Select a pickup point.');
-  return { full_name, phone, qr_number, pickup_point_id, is_active: input.is_active !== false };
+  if (id_number && !/^\d{6,10}$/.test(id_number)) throw new Error('Kenyan National ID number must contain 6 to 10 digits.');
+
+  return { full_name, phone, qr_number, pickup_point_id, id_number, is_active: input.is_active !== false };
 }
 export function validateImport(row: ImportRow, points: { id: string; code: string; is_active: boolean }[], existing: Set<string>) {
   const errors: string[] = [];

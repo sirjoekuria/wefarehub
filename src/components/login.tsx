@@ -1,10 +1,23 @@
 'use client';
 import { useState, type FormEvent } from 'react';
-import { ArrowLeft, ArrowRight, CheckCircle2, Eye, EyeOff, HeartHandshake, KeyRound, LockKeyhole, Mail, ShieldCheck } from 'lucide-react';
+import { 
+  ArrowLeft, 
+  ArrowRight, 
+  CheckCircle2, 
+  Eye, 
+  EyeOff, 
+  HeartHandshake, 
+  KeyRound, 
+  LockKeyhole, 
+  Mail, 
+  ShieldCheck, 
+  UserPlus 
+} from 'lucide-react';
 import { enterDemo, isSupabase, resendConfirmationEmail, resetPassword, signIn } from '@/lib/api';
 import { errorMessage } from '@/lib/utils';
 import { Brand } from './admin-shell';
 import { InlineError, Spinner } from './ui';
+import { ThemeToggle } from './theme-toggle';
 
 export function Login({ onSuccess, initialError = '' }: { onSuccess: () => void; initialError?: string }) {
   const [mode, setMode] = useState<'login' | 'forgot'>('login');
@@ -76,7 +89,7 @@ export function Login({ onSuccess, initialError = '' }: { onSuccess: () => void;
   };
 
   return (
-    <div className="grid min-h-screen bg-white lg:grid-cols-[1fr_1fr]">
+    <div className="grid min-h-screen bg-slate-50 dark:bg-slate-950 lg:grid-cols-[1fr_1.1fr]">
       {/* Brand Hero Art Side */}
       <section className="login-art hidden flex-col px-12 py-12 lg:flex xl:px-16">
         <div className="relative z-10">
@@ -89,7 +102,7 @@ export function Login({ onSuccess, initialError = '' }: { onSuccess: () => void;
           <h1 className="text-[46px] font-extrabold leading-[1.2] tracking-[-2px] text-[#f0f5e9] xl:text-[54px]">
             Standing together.<br />Moving forward.
           </h1>
-          <p className="mt-5 max-w-[330px] text-[14px] leading-7 text-[#cbd5e1]">
+          <p className="mt-5 max-w-[340px] text-[15px] leading-7 text-[#cbd5e1]">
             Behind every ride is a rider.<br />Behind every rider, a community that cares.
           </p>
         </div>
@@ -106,23 +119,28 @@ export function Login({ onSuccess, initialError = '' }: { onSuccess: () => void;
         </div>
       </section>
 
-      {/* Form Side */}
+      {/* Form Side - Enlarged & High Contrast */}
       <section className="flex min-h-screen flex-col px-6 py-8 sm:px-12">
-        <div className="lg:hidden">
-          <Brand />
+        <div className="flex items-center justify-between">
+          <div className="lg:hidden">
+            <Brand />
+          </div>
+          <div className="ml-auto flex items-center gap-2">
+            <ThemeToggle />
+          </div>
         </div>
 
-        <div className="mx-auto flex w-full max-w-[430px] flex-1 flex-col justify-center py-10">
-          <div className="card p-7 sm:p-9">
-            <span className="mb-6 flex h-11 w-11 items-center justify-center rounded-xl border border-[#cbd5e1] bg-[#f1f5f9] text-[#167653]">
-              {mode === 'login' ? <ShieldCheck size={22} strokeWidth={2} /> : <KeyRound size={22} strokeWidth={2} />}
+        <div className="mx-auto flex w-full max-w-[495px] flex-1 flex-col justify-center py-8">
+          <div className="card p-8 sm:p-11 shadow-2xl">
+            <span className="mb-6 flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200/90 bg-emerald-50 text-[#167653] dark:border-slate-700 dark:bg-emerald-950/60 dark:text-emerald-400">
+              {mode === 'login' ? <ShieldCheck size={24} strokeWidth={2} /> : <KeyRound size={24} strokeWidth={2} />}
             </span>
 
           {mode === 'login' ? (
             <>
-              <p className="eyebrow mb-2 text-[11px] font-bold text-[#167653]">ADMIN WORKSPACE</p>
-              <h2 className="text-[32px] font-extrabold tracking-[-1.2px] text-[#0f172a]">Welcome back.</h2>
-              <p className="mt-2 text-sm leading-6 text-[#475569]">
+              <p className="eyebrow mb-2 text-[11.5px] font-extrabold text-[#167653] dark:text-emerald-400">ADMIN WORKSPACE</p>
+              <h2 className="text-[34px] font-extrabold tracking-tight text-slate-900 dark:text-white">Welcome back.</h2>
+              <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
                 Sign in to manage your association’s contributions, pickup points, and audit trail.
               </p>
 
@@ -130,7 +148,7 @@ export function Login({ onSuccess, initialError = '' }: { onSuccess: () => void;
                 <InlineError message={error} />
                 
                 {resentMsg && (
-                  <div className="rounded-lg border border-[#86efac] bg-[#f0fdf4] p-3 text-sm font-semibold text-[#166534]">
+                  <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800 dark:border-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">
                     {resentMsg}
                   </div>
                 )}
@@ -140,7 +158,7 @@ export function Login({ onSuccess, initialError = '' }: { onSuccess: () => void;
                     type="button" 
                     onClick={handleResend} 
                     disabled={resending} 
-                    className="text-sm font-bold text-[#167653] underline hover:text-[#065f46]"
+                    className="text-sm font-bold text-[#167653] underline hover:text-[#065f46] dark:text-emerald-400"
                   >
                     {resending ? 'Sending…' : 'Resend confirmation email'}
                   </button>
@@ -149,10 +167,10 @@ export function Login({ onSuccess, initialError = '' }: { onSuccess: () => void;
                 <label className="block">
                   <span className="field-label">Email address</span>
                   <span className="relative block">
-                    <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#64748b]" />
+                    <Mail size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
                     <input 
                       type="email" 
-                      className="input !py-3 !pl-10" 
+                      className="input !py-3.5 !pl-11 !text-[15px]" 
                       placeholder="admin@yourassociation.co.ke" 
                       autoComplete="username" 
                       value={email} 
@@ -166,20 +184,19 @@ export function Login({ onSuccess, initialError = '' }: { onSuccess: () => void;
                 <label className="block">
                   <div className="mb-2 flex items-center justify-between">
                     <span className="field-label !mb-0">Password</span>
-                    <button 
-                      type="button" 
-                      onClick={() => { setMode('forgot'); setError(''); setResetSuccess(false); }}
-                      className="text-[12.5px] font-bold text-[#167653] hover:underline"
+                    <a 
+                      href="/reset-password"
+                      className="text-xs font-bold text-[#167653] hover:underline dark:text-emerald-400"
                     >
                       Forgot password?
-                    </button>
+                    </a>
                   </div>
                   <span className="relative block">
-                    <LockKeyhole size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#64748b]" />
+                    <LockKeyhole size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
                     <input 
                       type={visible ? 'text' : 'password'} 
                       aria-label="Password" 
-                      className="input !py-3 !pl-10 !pr-10" 
+                      className="input !py-3.5 !pl-11 !pr-11 !text-[15px]" 
                       placeholder="Enter your password" 
                       autoComplete="current-password" 
                       value={password} 
@@ -194,33 +211,47 @@ export function Login({ onSuccess, initialError = '' }: { onSuccess: () => void;
                       onClick={() => setVisible(v => !v)} 
                       aria-label={visible ? 'Hide password' : 'Show password'}
                     >
-                      {visible ? <EyeOff size={16} /> : <Eye size={16} />}
+                      {visible ? <EyeOff size={17} /> : <Eye size={17} />}
                     </button>
                   </span>
                 </label>
 
-                <button className="btn btn-primary w-full !py-3 font-bold" type="submit" disabled={loading}>
+                <button className="btn btn-primary w-full !py-3.5 !min-h-[50px] !text-[15.5px] font-bold" type="submit" disabled={loading}>
                   {loading ? <Spinner label="Signing in…" /> : (
                     <>
                       Sign in to workspace
-                      <ArrowRight size={16} className="ml-auto" />
+                      <ArrowRight size={18} className="ml-auto" />
                     </>
                   )}
                 </button>
               </form>
 
+              {/* Dedicated Signup Link for Other Officials */}
+              <div className="mt-6 border-t border-slate-200/90 pt-5 text-center dark:border-slate-800">
+                <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                  New official or welfare committee member?
+                </p>
+                <a
+                  href="/signup"
+                  className="mt-2.5 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white/90 px-4 py-2.5 text-xs font-bold text-slate-800 shadow-xs hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                >
+                  <UserPlus size={15} className="text-[#167653] dark:text-emerald-400" />
+                  Register official account
+                </a>
+              </div>
+
               {!isSupabase && (
-                <div className="mt-7 rounded-xl border border-[#cbd5e1] bg-[#f8fafc] p-4">
-                  <div className="flex items-center gap-2 text-[12px] font-bold text-[#0f172a]">
+                <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-800/80">
+                  <div className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-white">
                     <HeartHandshake size={15} />Get to know your workspace
                   </div>
-                  <p className="mt-1.5 text-[12px] leading-5 text-[#475569]">
+                  <p className="mt-1 text-xs leading-5 text-slate-600 dark:text-slate-400">
                     Explore with sample riders and contributions. This demo is not connected to M-Pesa.
                   </p>
                   <button 
                     onClick={demo} 
                     disabled={loading} 
-                    className="mt-3 flex items-center gap-2 text-[12px] font-bold text-[#167653] hover:underline"
+                    className="mt-3 flex items-center gap-2 text-xs font-bold text-[#167653] hover:underline dark:text-emerald-400"
                   >
                     Explore demo workspace<ArrowRight size={13} />
                   </button>
@@ -228,32 +259,40 @@ export function Login({ onSuccess, initialError = '' }: { onSuccess: () => void;
               )}
             </>
           ) : (
-            /* Forgot Password Mode */
+            /* Forgot Password Inline Fallback */
             <>
-              <p className="eyebrow mb-2 text-[11px] font-bold text-[#167653]">ACCOUNT RECOVERY</p>
-              <h2 className="text-[30px] font-extrabold tracking-[-1.2px] text-[#0f172a]">Reset password</h2>
-              <p className="mt-2 text-sm leading-6 text-[#475569]">
-                Enter your administrator email address. We’ll send you a secure link to reset your password.
+              <p className="eyebrow mb-2 text-[11px] font-bold text-[#167653] dark:text-emerald-400">ACCOUNT RECOVERY</p>
+              <h2 className="text-[32px] font-extrabold tracking-tight text-slate-900 dark:text-white">Reset password</h2>
+              <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                Enter your administrator email address. We’ll send you a secure link and code to reset your password.
               </p>
 
               {resetSuccess ? (
                 <div className="mt-8 space-y-6">
-                  <div className="rounded-xl border border-[#86efac] bg-[#f0fdf4] p-5">
+                  <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-5 dark:border-emerald-800 dark:bg-emerald-950/50">
                     <div className="flex items-start gap-3">
-                      <CheckCircle2 size={22} className="mt-0.5 shrink-0 text-[#166534]" />
+                      <CheckCircle2 size={22} className="mt-0.5 shrink-0 text-emerald-700 dark:text-emerald-400" />
                       <div>
-                        <h3 className="text-sm font-bold text-[#166534]">Reset link sent!</h3>
-                        <p className="mt-1 text-xs leading-relaxed text-[#15803d]">
-                          We’ve sent instructions and a secure reset link to <strong className="text-[#0f172a]">{email}</strong>. Please check your inbox and spam folder.
+                        <h3 className="text-sm font-bold text-emerald-900 dark:text-emerald-300">Reset link sent!</h3>
+                        <p className="mt-1 text-xs leading-relaxed text-emerald-800 dark:text-emerald-400">
+                          We’ve sent instructions and a secure reset link to <strong className="text-slate-900 dark:text-white">{email}</strong>.
                         </p>
                       </div>
                     </div>
                   </div>
 
+                  <a
+                    href="/reset-password"
+                    className="btn btn-primary w-full !py-3.5 font-bold"
+                  >
+                    Open dedicated reset password page
+                    <ArrowRight size={16} className="ml-auto" />
+                  </a>
+
                   <button
                     type="button"
                     onClick={() => { setMode('login'); setError(''); setResetSuccess(false); }}
-                    className="btn btn-primary w-full !py-3 font-bold"
+                    className="btn btn-secondary w-full !py-3 font-bold"
                   >
                     <ArrowLeft size={16} />
                     Back to sign in
@@ -266,10 +305,10 @@ export function Login({ onSuccess, initialError = '' }: { onSuccess: () => void;
                   <label className="block">
                     <span className="field-label">Administrator email</span>
                     <span className="relative block">
-                      <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#64748b]" />
+                      <Mail size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
                       <input 
                         type="email" 
-                        className="input !py-3 !pl-10" 
+                        className="input !py-3.5 !pl-11 !text-[15px]" 
                         placeholder="admin@yourassociation.co.ke" 
                         autoComplete="email" 
                         value={email} 
@@ -280,7 +319,7 @@ export function Login({ onSuccess, initialError = '' }: { onSuccess: () => void;
                     </span>
                   </label>
 
-                  <button className="btn btn-primary w-full !py-3 font-bold" type="submit" disabled={loading}>
+                  <button className="btn btn-primary w-full !py-3.5 !min-h-[50px] !text-[15px] font-bold" type="submit" disabled={loading}>
                     {loading ? <Spinner label="Sending link…" /> : (
                       <>
                         Send password reset link
@@ -289,15 +328,23 @@ export function Login({ onSuccess, initialError = '' }: { onSuccess: () => void;
                     )}
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => { setMode('login'); setError(''); }}
-                    className="btn btn-ghost w-full !py-2.5 font-bold text-[#334155]"
-                    disabled={loading}
-                  >
-                    <ArrowLeft size={15} />
-                    Back to sign in
-                  </button>
+                  <div className="flex items-center justify-between pt-2">
+                    <button
+                      type="button"
+                      onClick={() => { setMode('login'); setError(''); }}
+                      className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                      disabled={loading}
+                    >
+                      <ArrowLeft size={14} />
+                      Back to sign in
+                    </button>
+                    <a
+                      href="/reset-password"
+                      className="text-xs font-bold text-[#167653] hover:underline dark:text-emerald-400"
+                    >
+                      Dedicated Reset Page →
+                    </a>
+                  </div>
                 </form>
               )}
             </>
@@ -305,8 +352,8 @@ export function Login({ onSuccess, initialError = '' }: { onSuccess: () => void;
           </div>
         </div>
 
-        <div className="flex items-center justify-center gap-2 text-[11px] font-semibold text-[#64748b]">
-          <ShieldCheck size={14} className="text-[#167653]" />
+        <div className="flex items-center justify-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
+          <ShieldCheck size={15} className="text-[#167653] dark:text-emerald-400" />
           Administrator access only. Protected with encrypted audit logs.
         </div>
       </section>

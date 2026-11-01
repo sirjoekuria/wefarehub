@@ -34,10 +34,12 @@ create table if not exists public.members (
   full_name text not null check (length(trim(full_name)) between 2 and 120),
   phone text not null check (phone ~ '^254(7|1)[0-9]{8}$'),
   qr_number text not null check (qr_number ~ '^[0-9]{1,12}$'),
+  id_number text unique check (id_number is null or id_number ~ '^[0-9]{6,10}$'),
   is_active boolean not null default true,
   created_at timestamptz not null default now(),
   unique (pickup_point_id, qr_number)
 );
+alter table public.members add column if not exists id_number text unique;
 
 create table if not exists public.payments (
   id uuid primary key default gen_random_uuid(),

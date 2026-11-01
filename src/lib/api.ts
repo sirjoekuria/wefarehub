@@ -198,7 +198,42 @@ export async function mutate(action: string, payload: MutationPayload) {
     const data = validateMember(values);
     const { data: point, error: pointError } = await db.from('pickup_points').select('id,name,code').eq('id', data.pickup_point_id).eq('is_active', true).maybeSingle();
     if (pointError) throw pointError; if (!point) throw new Error('Choose an active pickup point.');
-    result = action === 'create-member' ? await db.from('members').insert(data).select().single() : await db.from('members').update(data).eq('id', payload.id!).select().single();
+
+    // Enforce uniqueness of Kenyan National ID number
+    if (data.id_number) {
+      try {
+        const { data: existingWithId } = await db
+          .from('members')
+          .select('id,full_name,qr_number')
+          .eq('id_number', data.id_number)
+          .maybeSingle();
+        if (existingWithId && existingWithId.id !== payload.id) {
+          throw new Error(`National ID ${data.id_number} is already registered to ${existingWithId.full_name} (QR #${existingWithId.qr_number}). Each member must have a unique ID number.`);
+        }
+      } catch (err) {
+        if (err instanceof Error && err.message.includes('already registered')) throw err;
+      }
+    }
+
+    // Try saving with id_number; if column does not exist yet in DB, fallback without it
+    try {
+      result = action === 'create-member' 
+        ? await db.from('members').insert(data).select().single() 
+        : await db.from('members').update(data).eq('id', payload.id!).select().single();
+      if (result.error && (result.error.code === '42703' || result.error.message?.includes('id_number'))) {
+        const { id_number: _omitted, ...dataWithoutId } = data;
+        result = action === 'create-member' 
+          ? await db.from('members').insert(dataWithoutId).select().single() 
+          : await db.from('members').update(dataWithoutId).eq('id', payload.id!).select().single();
+      }
+    } catch {
+      const { id_number: _omitted, ...dataWithoutId } = data;
+      result = action === 'create-member' 
+        ? await db.from('members').insert(dataWithoutId).select().single() 
+        : await db.from('members').update(dataWithoutId).eq('id', payload.id!).select().single();
+    }
+    if (result.error) throw result.error;
+
     if (!result.error) {
       try {
         await db.from('audit_logs').insert({
@@ -206,7 +241,13 @@ export async function mutate(action: string, payload: MutationPayload) {
           entity_type: 'member',
           entity_id: result.data.id,
           entity_name: data.full_name,
-          details: { phone: data.phone, qr_number: data.qr_number, pickup_code: point.code, pickup_name: point.name },
+          details: { 
+            phone: data.phone, 
+            qr_number: data.qr_number, 
+            id_number: data.id_number || null,
+            pickup_code: point.code, 
+            pickup_name: point.name 
+          },
         });
       } catch {}
     }
