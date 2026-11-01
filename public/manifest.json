@@ -1,0 +1,19 @@
+{
+  "name": "Welfare Hub",
+  "short_name": "Welfare",
+  "description": "ROCS CREW — Riders Welfare Contribution System",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b1329",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
