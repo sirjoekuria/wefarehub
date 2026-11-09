@@ -1,10 +1,14 @@
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
+import { Space_Grotesk, Manrope } from 'next/font/google';
 import './globals.css';
 
+const display = Space_Grotesk({ subsets: ['latin'], weight: ['500', '600', '700'], variable: '--font-display' });
+const ui = Manrope({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'], variable: '--font-ui' });
+
 export const metadata: Metadata = {
-  title: 'ROCS CREW — Riders Welfare Contribution System',
-  description: 'A stronger community, one contribution at a time. Manage pickup points, riders and M-Pesa welfare contributions.',
+  title: 'RiderHub 360 & Welfare Contribution System',
+  description: 'Digital operating system for bodaboda associations and welfare contribution management.',
   manifest: '/manifest.json',
   icons: {
     icon: '/icon-512.png',
@@ -25,7 +29,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className={`${display.variable} ${ui.variable}`} suppressHydrationWarning>
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#0f172a" />

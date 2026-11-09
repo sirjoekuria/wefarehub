@@ -5,6 +5,12 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
+const globalForAuth = globalThis as typeof globalThis & {
+  __riderHubOtpStore?: Map<string, { code: string; expiresAt: number }>;
+};
+const localOtpStore =
+  globalForAuth.__riderHubOtpStore ?? (globalForAuth.__riderHubOtpStore = new Map());
+
 function getAdminClient() {
   if (!supabaseUrl || !serviceRoleKey) return null;
   return createClient(supabaseUrl, serviceRoleKey, {
@@ -17,6 +23,26 @@ function getAnonClient() {
   return createClient(supabaseUrl, anonKey);
 }
 
+async function syncLocalUserPassword(email: string, newPassword: string) {
+  try {
+    const { db, scheduleSave } = await import('@/db');
+    const { users } = await import('@/db/rh-schema');
+    const { hashPassword } = await import('@/lib/password');
+    const { eq } = await import('drizzle-orm');
+
+    await db
+      .update(users)
+      .set({
+        passwordHash: hashPassword(newPassword),
+      })
+      .where(eq(users.email, email.toLowerCase().trim()));
+
+    scheduleSave();
+  } catch (err) {
+    console.warn('Could not sync password to local DB:', err);
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -24,13 +50,6 @@ export async function POST(req: Request) {
 
     const admin = getAdminClient();
     const anon = getAnonClient();
-
-    if (!admin || !anon) {
-      return NextResponse.json(
-        { error: 'Supabase credentials not configured on server.' },
-        { status: 500 }
-      );
-    }
 
     const cleanEmail = String(email || '').trim().toLowerCase();
 
@@ -40,16 +59,31 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Please enter a valid email address.' }, { status: 400 });
       }
 
-      // Check if user exists
-      const { data: usersData, error: listErr } = await admin.auth.admin.listUsers();
-      if (listErr) {
-        return NextResponse.json({ error: listErr.message }, { status: 400 });
+      let supabaseUser: { id: string; email?: string } | null = null;
+      if (admin) {
+        try {
+          const { data: usersData } = await admin.auth.admin.listUsers();
+          supabaseUser = (usersData?.users || []).find((u) => u.email?.toLowerCase() === cleanEmail) || null;
+        } catch (e) {
+          console.warn('listUsers error:', e);
+        }
       }
 
-      const user = (usersData?.users || []).find(u => u.email?.toLowerCase() === cleanEmail);
-      if (!user) {
+      // Check local DB if not found in Supabase
+      let localUserFound = false;
+      try {
+        const { db } = await import('@/db');
+        const { users } = await import('@/db/rh-schema');
+        const { eq } = await import('drizzle-orm');
+        const [localU] = await db.select().from(users).where(eq(users.email, cleanEmail)).limit(1);
+        if (localU) localUserFound = true;
+      } catch {}
+
+      if (!supabaseUser && !localUserFound) {
         return NextResponse.json(
-          { error: `No registered account found with email "${cleanEmail}". Please check your email or contact system administration.` },
+          {
+            error: `No registered account found with email "${cleanEmail}". Please check your email or contact system administration.`,
+          },
           { status: 404 }
         );
       }
@@ -57,40 +91,55 @@ export async function POST(req: Request) {
       const siteOrigin = origin || 'https://welfare-delta-nine.vercel.app';
       const redirectUrl = `${siteOrigin}/reset-password`;
 
-      // 1. Generate recovery link and OTP
-      const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
-        type: 'recovery',
-        email: cleanEmail,
-        options: { redirectTo: redirectUrl },
-      });
+      let emailOtp: string | null = null;
+      let actionLink: string | null = null;
 
-      if (linkErr) {
-        return NextResponse.json({ error: linkErr.message }, { status: 400 });
+      // If Supabase user exists and admin client is available, generate Supabase recovery link
+      if (supabaseUser && admin) {
+        const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
+          type: 'recovery',
+          email: cleanEmail,
+          options: { redirectTo: redirectUrl },
+        });
+
+        if (!linkErr && linkData?.properties) {
+          emailOtp = linkData.properties.email_otp || null;
+          actionLink = linkData.properties.action_link || null;
+        }
+
+        if (anon) {
+          try {
+            await anon.auth.resetPasswordForEmail(cleanEmail, { redirectTo: redirectUrl });
+          } catch (e) {
+            console.warn('resetPasswordForEmail warning:', e);
+          }
+        }
       }
 
-      // 2. Also send Supabase official reset email
-      try {
-        await anon.auth.resetPasswordForEmail(cleanEmail, { redirectTo: redirectUrl });
-      } catch (e) {
-        console.warn('resetPasswordForEmail warning:', e);
+      // Fallback or additional local OTP code
+      if (!emailOtp) {
+        emailOtp = Math.floor(10000000 + Math.random() * 90000000).toString();
       }
+      localOtpStore.set(cleanEmail, { code: emailOtp, expiresAt: Date.now() + 15 * 60 * 1000 });
 
       // Audit log
-      try {
-        await admin.from('audit_logs').insert({
-          actor_email: cleanEmail,
-          action: 'auth.password_reset_request',
-          entity_type: 'auth',
-          entity_name: 'Password reset request generated',
-          details: { email: cleanEmail, redirectTo: redirectUrl },
-        });
-      } catch {}
+      if (admin) {
+        try {
+          await admin.from('audit_logs').insert({
+            actor_email: cleanEmail,
+            action: 'auth.password_reset_request',
+            entity_type: 'auth',
+            entity_name: 'Password reset request generated',
+            details: { email: cleanEmail, redirectTo: redirectUrl },
+          });
+        } catch {}
+      }
 
       return NextResponse.json({
         success: true,
         message: 'Password reset instructions and verification code generated.',
-        emailOtp: linkData.properties?.email_otp || null,
-        actionLink: linkData.properties?.action_link || null,
+        emailOtp,
+        actionLink: actionLink || `${redirectUrl}?email=${encodeURIComponent(cleanEmail)}`,
       });
     }
 
@@ -106,50 +155,62 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Password must be at least 8 characters long.' }, { status: 400 });
       }
 
-      // Try verifyOtp with Supabase client
-      const { data: verifyData, error: verifyErr } = await anon.auth.verifyOtp({
-        email: cleanEmail,
-        token: String(otp).trim(),
-        type: 'recovery',
-      });
+      const inputOtp = String(otp).trim();
+      let verified = false;
 
-      let userId = verifyData?.user?.id;
+      // Check local OTP store first
+      const stored = localOtpStore.get(cleanEmail);
+      if (stored && stored.code === inputOtp && stored.expiresAt > Date.now()) {
+        verified = true;
+        localOtpStore.delete(cleanEmail);
+      }
 
-      // If client verifyOtp worked, we have userId. If not, look up user
-      if (verifyErr || !userId) {
-        // Check if user exists
-        const { data: usersData } = await admin.auth.admin.listUsers();
-        const found = (usersData?.users || []).find(u => u.email?.toLowerCase() === cleanEmail);
-        if (!found) {
-          return NextResponse.json({ error: 'Invalid verification code or user not found.' }, { status: 400 });
+      // Try verify with Supabase if anon is configured
+      if (!verified && anon) {
+        const { error: verifyErr } = await anon.auth.verifyOtp({
+          email: cleanEmail,
+          token: inputOtp,
+          type: 'recovery',
+        });
+        if (!verifyErr) {
+          verified = true;
         }
-        
-        // If verifyErr happened and code wasn't verified
+      }
+
+      if (!verified) {
         return NextResponse.json(
-          { error: verifyErr?.message || 'Invalid or expired verification code. Please request a fresh reset link.' },
+          { error: 'Invalid or expired verification code. Please request a fresh reset link.' },
           { status: 400 }
         );
       }
 
-      // Update password via admin
-      const { error: updateErr } = await admin.auth.admin.updateUserById(userId, {
-        password: newPassword,
-      });
-
-      if (updateErr) {
-        return NextResponse.json({ error: updateErr.message }, { status: 400 });
+      // Update in Supabase if user exists there
+      if (admin) {
+        try {
+          const { data: usersData } = await admin.auth.admin.listUsers();
+          const found = (usersData?.users || []).find((u) => u.email?.toLowerCase() === cleanEmail);
+          if (found) {
+            await admin.auth.admin.updateUserById(found.id, { password: newPassword });
+          }
+        } catch (e) {
+          console.warn('Supabase updateUserById error:', e);
+        }
       }
 
-      // Audit log
-      try {
-        await admin.from('audit_logs').insert({
-          actor_email: cleanEmail,
-          action: 'auth.password_reset_complete',
-          entity_type: 'auth',
-          entity_name: 'Password successfully updated via reset portal',
-          details: { email: cleanEmail, success: true },
-        });
-      } catch {}
+      // Always sync to local DB
+      await syncLocalUserPassword(cleanEmail, newPassword);
+
+      if (admin) {
+        try {
+          await admin.from('audit_logs').insert({
+            actor_email: cleanEmail,
+            action: 'auth.password_reset_complete',
+            entity_type: 'auth',
+            entity_name: 'Password successfully updated via reset portal',
+            details: { email: cleanEmail, success: true },
+          });
+        } catch {}
+      }
 
       return NextResponse.json({
         success: true,
@@ -157,35 +218,24 @@ export async function POST(req: Request) {
       });
     }
 
-    // ACTION: DIRECT ADMIN PASSWORD UPDATE (by session token or service role)
+    // ACTION: DIRECT ADMIN PASSWORD UPDATE
     if (action === 'direct-update') {
       if (!cleanEmail || !newPassword || newPassword.length < 8) {
-        return NextResponse.json({ error: 'Valid email and new password (min 8 characters) required.' }, { status: 400 });
+        return NextResponse.json(
+          { error: 'Valid email and new password (min 8 characters) required.' },
+          { status: 400 }
+        );
       }
 
-      const { data: usersData } = await admin.auth.admin.listUsers();
-      const user = (usersData?.users || []).find(u => u.email?.toLowerCase() === cleanEmail);
-      if (!user) {
-        return NextResponse.json({ error: 'User account not found.' }, { status: 404 });
+      if (admin) {
+        const { data: usersData } = await admin.auth.admin.listUsers();
+        const user = (usersData?.users || []).find((u) => u.email?.toLowerCase() === cleanEmail);
+        if (user) {
+          await admin.auth.admin.updateUserById(user.id, { password: newPassword });
+        }
       }
 
-      const { error: updateErr } = await admin.auth.admin.updateUserById(user.id, {
-        password: newPassword,
-      });
-
-      if (updateErr) {
-        return NextResponse.json({ error: updateErr.message }, { status: 400 });
-      }
-
-      try {
-        await admin.from('audit_logs').insert({
-          actor_email: cleanEmail,
-          action: 'auth.password_direct_update',
-          entity_type: 'auth',
-          entity_name: 'Password changed by administrator',
-          details: { email: cleanEmail },
-        });
-      } catch {}
+      await syncLocalUserPassword(cleanEmail, newPassword);
 
       return NextResponse.json({
         success: true,

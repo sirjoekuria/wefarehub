@@ -50,3 +50,6 @@ export type WelfareCase = {
   pickup_name?: string | null;
   pickup_code?: string | null;
 };
+
+export * from './rh-types';
+
