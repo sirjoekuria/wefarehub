@@ -15,8 +15,10 @@ export default async function WorkspacePage({ params }: { params: Promise<{ slug
   const org = await getOrgBySlug(slug);
   if (!org) notFound();
 
+  // Super admins can access any org workspace directly
+  const isSuperAdmin = user.platformRole === "super_admin";
   const access = await getAccess(user.id, org.id);
-  if (!access.isOrgMember && access.chairStationId === null)
+  if (!isSuperAdmin && !access.isOrgMember && access.chairStationId === null)
     redirect(user.platformRole ? "/platform" : "/login");
 
   let chairStationName: string | null = null;
@@ -51,7 +53,7 @@ export default async function WorkspacePage({ params }: { params: Promise<{ slug
           status: org.status,
           formVersion: org.formVersion,
         },
-        role: access.orgRole,
+        role: access.orgRole ?? (isSuperAdmin ? "owner" : null),
         chairStationId: access.chairStationId,
         chairStationName,
       }}

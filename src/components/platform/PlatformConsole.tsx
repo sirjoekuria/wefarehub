@@ -292,7 +292,13 @@ export function PlatformConsole({ role }: { role: string }) {
                           <td className="text-[12.5px] text-[var(--ink-soft)]">{fmtDate(o.periodEnd)}</td>
                           <td className="text-right font-bold">{o.members}</td>
                           <td className="text-right">{o.stations}</td>
-                          <td className="text-right whitespace-nowrap">
+                          <td className="text-right whitespace-nowrap space-x-1.5">
+                            <Link
+                              href={`/w/${o.slug}`}
+                              className="rh-btn rh-btn-primary rh-btn-sm inline-flex items-center gap-1"
+                            >
+                              Workspace →
+                            </Link>
                             <button className="rh-btn rh-btn-ghost rh-btn-sm" onClick={() => openDetail(o)}>
                               Inspect <IconChevron className="w-3.5 h-3.5" />
                             </button>
@@ -418,6 +424,17 @@ export function PlatformConsole({ role }: { role: string }) {
 
       {detail ? (
         <Modal wide title={`Privileged view · ${detail.name}`} onClose={() => setDetail(null)}>
+          <div className="mb-4 flex items-center justify-between pb-3 border-b border-[var(--line)]">
+            <span className="text-xs text-[var(--ink-soft)]">
+              Direct workspace access as Super Admin:
+            </span>
+            <Link
+              href={`/w/${detail.d.org.slug}`}
+              className="rh-btn rh-btn-primary rh-btn-sm inline-flex items-center gap-1.5"
+            >
+              Open {detail.name} Workspace →
+            </Link>
+          </div>
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <div className="rh-label mb-2">Stations ({detail.d.stations.length})</div>

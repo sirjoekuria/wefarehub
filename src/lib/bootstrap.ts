@@ -87,6 +87,16 @@ export async function ensureSeeded(): Promise<void> {
  */
 export async function syncAllSequences(): Promise<void> {
   try {
+    // Clean up stale test organizations if present in memory or disk
+    try {
+      await pglite.query(`
+        DELETE FROM organization_memberships WHERE org_id IN (SELECT id FROM organizations WHERE slug = 'rocs-crew-2');
+        DELETE FROM organizations WHERE slug = 'rocs-crew-2';
+      `);
+    } catch {
+      // ignore
+    }
+
     const seqDeps = await pglite.query<{
       sequence_name: string;
       table_name: string;

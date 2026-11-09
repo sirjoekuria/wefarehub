@@ -143,6 +143,15 @@ export function Workspace({ initial }: { initial: WorkspaceInitial }) {
         </div>
 
         <nav className="mt-6 space-y-1.5">
+          {user.platformRole === "super_admin" ? (
+            <Link
+              href="/platform"
+              className="rh-btn rh-btn-sm w-full mb-3 bg-white/10 hover:bg-white/20 text-white font-bold flex items-center justify-center gap-1.5 border border-white/20 text-[12px]"
+            >
+              <IconShield className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+              <span>Super Admin Console</span>
+            </Link>
+          ) : null}
           {nav.filter((n) => n.show).map((n) => (
             <button key={n.id} className={`rh-nav-item !py-2.5 !px-3.5 !text-[14px] ${tab === n.id ? "active" : ""}`} onClick={() => pickTab(n.id)}>
               <n.icon className="w-5 h-5 shrink-0" />

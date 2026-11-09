@@ -52,6 +52,36 @@ export async function POST(req: Request) {
       u = { ...u, platformRole: "super_admin" };
     }
 
+    // Clean up any stale test orgs and cascade memberships
+    const staleOrgs = await db.select({ id: organizations.id }).from(organizations).where(eq(organizations.slug, "rocs-crew-2"));
+    for (const stale of staleOrgs) {
+      await db.delete(organizationMemberships).where(eq(organizationMemberships.orgId, stale.id));
+      await db.delete(organizations).where(eq(organizations.id, stale.id));
+    }
+
+    // Ensure super_admin has owner access to all organizations
+    if (u.platformRole === "super_admin") {
+      const allActiveOrgs = await db.select({ id: organizations.id }).from(organizations);
+      for (const org of allActiveOrgs) {
+        const [existing] = await db
+          .select({ id: organizationMemberships.id })
+          .from(organizationMemberships)
+          .where(
+            and(
+              eq(organizationMemberships.orgId, org.id),
+              eq(organizationMemberships.userId, u.id)
+            )
+          );
+        if (!existing) {
+          await db.insert(organizationMemberships).values({
+            orgId: org.id,
+            userId: u.id,
+            role: "owner",
+          });
+        }
+      }
+    }
+
     const token = (randomUUID() + randomUUID()).replace(/-/g, "").slice(0, 64);
     await db.insert(sessions).values({
       token,
@@ -93,12 +123,13 @@ export async function POST(req: Request) {
 
     // Determine target redirect URL
     let redirectUrl = "/platform";
-    if (u.platformRole === "super_admin") {
-      redirectUrl = "/platform";
-    } else if (mems.length > 0) {
+    if (mems.length > 0) {
+      // Always prefer org workspace first (even for super_admin who owns orgs)
       redirectUrl = `/w/${mems[0].slug}`;
     } else if (chairs.length > 0) {
       redirectUrl = `/w/${chairs[0].orgSlug}`;
+    } else if (u.platformRole === "super_admin") {
+      redirectUrl = "/platform";
     } else {
       redirectUrl = "/register";
     }
